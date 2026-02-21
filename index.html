@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Martin's Card Prototyper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Archivo:wght@400;600;700&family=Audiowide&family=Bangers&family=Bebas+Neue&family=Bree+Serif&family=Bungee&family=Cabin+Sketch:wght@400;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;700&family=Exo+2:wght@400;600;700&family=Fjalla+One&family=IM+Fell+English+SC&family=Inter:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Lora:wght@400;500;700&family=Luckiest+Guy&family=Manrope:wght@400;600;700;800&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700;800&family=Nunito:wght@400;600;700&family=Orbitron:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pirata+One&family=Playfair+Display:wght@500;600;700&family=Rajdhani:wght@400;600;700&family=Rye&family=Skranji:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Special+Elite&family=Teko:wght@400;600;700&family=Uncial+Antiqua&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-main">
+        <h1>Martin's Card Prototyper</h1>
+        <p>Design quick card prototypes and export individual card images or print-ready sheets.</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="feedbackBtn" type="button">Feedback</button>
+        <button id="openTutorialBtn" type="button">Tutorial</button>
+        <button id="themeToggleBtn" type="button">Dark Mode</button>
+        <div class="menu-wrap">
+          <button id="toolsMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">Tools</button>
+          <div id="toolsMenu" class="tools-menu" hidden>
+            <a href="http://pnpfinder.com" target="_blank" rel="noopener noreferrer">PnPFinder</a>
+            <a href="https://pnptools.gonzhome.us" target="_blank" rel="noopener noreferrer">PnPTools</a>
+            <a href="https://launchpad.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Launchpad</a>
+            <a href="https://formatter.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Formatter</a>
+            <a href="https://extractor.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Extractor</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="panel left-panel">
+        <h2>Project</h2>
+        <div class="field-row">
+          <label for="projectName">Name</label>
+          <input id="projectName" type="text" placeholder="My Awesome Card Design" />
+        </div>
+        <div class="field-row">
+          <label for="cardSizeSelect">Card Size</label>
+          <select id="cardSizeSelect">
+            <option value="poker">Poker (2.5 x 3.5 in)</option>
+            <option value="tarot">Tarot (2.75 x 4.75 in)</option>
+            <option value="mini">Mini (1.75 x 2.5 in)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field-grid two-col" id="customSizeWrap" hidden>
+          <div class="field-row">
+            <label for="customWidth">Width (in)</label>
+            <input id="customWidth" type="number" min="1" max="10" step="0.01" value="2.5" />
+          </div>
+          <div class="field-row">
+            <label for="customHeight">Height (in)</label>
+            <input id="customHeight" type="number" min="1" max="14" step="0.01" value="3.5" />
+          </div>
+        </div>
+        <div class="field-row inline">
+          <label for="snapToggle">Snap to grid</label>
+          <input id="snapToggle" type="checkbox" checked />
+        </div>
+        <div class="field-row">
+          <label for="gridStepInput">Grid Step (in)</label>
+          <input id="gridStepInput" type="number" min="0.005" max="0.5" step="0.005" value="0.005" />
+        </div>
+        <div class="field-row inline">
+          <label for="showSafeBorder">Show safe border</label>
+          <input id="showSafeBorder" type="checkbox" checked />
+        </div>
+
+        <h2>Tiles</h2>
+        <div class="palette" id="tilePalette">
+          <button draggable="true" data-tile-type="card-background">Card Background Image</button>
+          <button draggable="true" data-tile-type="title">Title Tile</button>
+          <button draggable="true" data-tile-type="effect">Effect Text</button>
+          <button draggable="true" data-tile-type="flavor">Flavor Text</button>
+          <button draggable="true" data-tile-type="main-image">Main Image</button>
+          <button draggable="true" data-tile-type="icon">Icon Tile</button>
+        </div>
+        <p class="hint">Drag a tile type onto the card canvas.</p>
+        <p class="hint">
+          Need art assets? Download free icon and image assets from
+          <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a>.
+        </p>
+
+        <h2>Layers</h2>
+        <p class="hint">Top layer appears first. Use arrows to reorder.</p>
+        <ul id="layersList" class="layers-list"></ul>
+
+        <h2>Project File</h2>
+        <div class="row-actions">
+          <button id="saveProjectBtn">Save JSON</button>
+          <button id="loadProjectBtn">Load JSON</button>
+          <input id="projectFileInput" type="file" accept="application/json" hidden />
+        </div>
+        <div class="row-actions">
+          <button id="resetProjectBtn" class="danger">Start Over</button>
+        </div>
+
+        <h2>Export</h2>
+        <div class="row-actions">
+          <button id="previewCardBtn">Preview Card</button>
+          <button id="exportPngBtn">Export PNG</button>
+        </div>
+        <div class="field-row">
+          <label for="pdfPageSize">PDF Page</label>
+          <select id="pdfPageSize">
+            <option value="letter">US Letter</option>
+            <option value="a4">A4</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label for="pdfLayout">PDF Layout</label>
+          <select id="pdfLayout">
+            <option value="grid3x3">3x3 Grid</option>
+            <option value="grid2x3">2x3 Grid</option>
+            <option value="gutterfold">Gutterfold</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label for="pdfCopies">Cards in PDF</label>
+          <input id="pdfCopies" type="number" min="1" max="300" value="9" />
+        </div>
+        <div class="row-actions">
+          <button id="exportPdfBtn">Export PDF</button>
+        </div>
+        <p id="statusText" class="status">Ready.</p>
+      </section>
+
+      <section class="stage-panel">
+        <div id="cardStageWrap">
+          <div id="cardStage" aria-label="Card design stage"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        Copyright 2026 by
+        <a href="mailto:help@pnpfinder.com">Martin Gonzalvez</a>
+      </p>
+      <p>
+        Find this site useful? Why not
+        <a href="https://ko-fi.com/marting" target="_blank" rel="noopener noreferrer">buy me a coffee</a>?
+      </p>
+    </footer>
+
+    <aside id="floatingPalette" class="floating-palette" hidden>
+      <h2>Selection</h2>
+      <div id="tileControls" hidden>
+        <div class="field-row">
+          <label for="tileNameInput">Tile Label</label>
+          <input id="tileNameInput" type="text" />
+        </div>
+        <div class="field-row inline">
+          <label for="tileTransparentBgInput">Transparent Tile Background</label>
+          <input id="tileTransparentBgInput" type="checkbox" />
+        </div>
+        <div class="field-row inline">
+          <label for="tileShowOutlineInput">Show Tile Outline</label>
+          <input id="tileShowOutlineInput" type="checkbox" checked />
+        </div>
+        <div class="field-grid two-col">
+          <div class="field-row">
+            <label for="tileXInput">X (in)</label>
+            <input id="tileXInput" type="number" step="0.01" />
+          </div>
+          <div class="field-row">
+            <label for="tileYInput">Y (in)</label>
+            <input id="tileYInput" type="number" step="0.01" />
+          </div>
+          <div class="field-row">
+            <label for="tileWInput">W (in)</label>
+            <input id="tileWInput" type="number" min="0.2" step="0.01" />
+          </div>
+          <div class="field-row">
+            <label for="tileHInput">H (in)</label>
+            <input id="tileHInput" type="number" min="0.2" step="0.01" />
+          </div>
+        </div>
+        <div class="row-actions">
+          <button id="deleteTileBtn" class="danger">Delete Tile</button>
+        </div>
+
+        <div id="textControlsWrap">
+          <h3>Text Tools</h3>
+          <div class="toolbar">
+            <button data-cmd="bold"><b>B</b></button>
+            <button data-cmd="italic"><i>I</i></button>
+            <button data-cmd="underline"><u>U</u></button>
+            <button data-cmd="justifyLeft">L</button>
+            <button data-cmd="justifyCenter">C</button>
+            <button data-cmd="justifyRight">R</button>
+            <button data-cmd="justifyFull">J</button>
+          </div>
+          <div class="field-grid two-col">
+            <div class="field-row">
+              <label for="fontFamilySelect">Font</label>
+              <select id="fontFamilySelect">
+                <option value="'Alegreya SC', 'Times New Roman', serif">Alegreya SC</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Archivo', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Archivo</option>
+                <option value="'Audiowide', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Audiowide</option>
+                <option value="'Bangers', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bangers</option>
+                <option value="'Bebas Neue', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bebas Neue</option>
+                <option value="'Bree Serif', 'Times New Roman', serif">Bree Serif</option>
+                <option value="'Bungee', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bungee</option>
+                <option value="'Cabin Sketch', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Cabin Sketch</option>
+                <option value="'Cinzel', 'Times New Roman', serif">Cinzel</option>
+                <option value="'Cormorant Garamond', Georgia, serif">Cormorant Garamond</option>
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="'Crimson Text', Georgia, serif">Crimson Text</option>
+                <option value="'DM Sans', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">DM Sans</option>
+                <option value="'Exo 2', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Exo 2</option>
+                <option value="'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Fjalla One</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'IM Fell English SC', 'Times New Roman', serif">IM Fell English SC</option>
+                <option value="'Inter', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Inter</option>
+                <option value="'Josefin Sans', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Josefin Sans</option>
+                <option value="'Lora', Georgia, serif">Lora</option>
+                <option value="'Luckiest Guy', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Luckiest Guy</option>
+                <option value="'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Manrope</option>
+                <option value="'MedievalSharp', 'Times New Roman', serif">MedievalSharp</option>
+                <option value="'Merriweather', Georgia, serif">Merriweather</option>
+                <option value="'Montserrat', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Montserrat</option>
+                <option value="'Nunito', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Nunito</option>
+                <option value="'Orbitron', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Orbitron</option>
+                <option value="'Oswald', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Oswald</option>
+                <option value="'Pirata One', 'Times New Roman', serif">Pirata One</option>
+                <option value="'Playfair Display', 'Times New Roman', serif">Playfair Display</option>
+                <option value="'Rajdhani', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Rajdhani</option>
+                <option value="'Rye', 'Times New Roman', serif">Rye</option>
+                <option value="'Skranji', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Skranji</option>
+                <option value="'Source Sans 3', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Source Sans 3</option>
+                <option value="'Space Grotesk', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Space Grotesk</option>
+                <option value="'Special Elite', 'Courier New', monospace">Special Elite</option>
+                <option value="'Teko', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Teko</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="'Trebuchet MS', 'Helvetica Neue', Arial, sans-serif">Trebuchet MS</option>
+                <option value="'Uncial Antiqua', 'Times New Roman', serif">Uncial Antiqua</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label for="fontSizeInput">Font Size (px)</label>
+              <input id="fontSizeInput" type="number" min="8" max="96" value="18" />
+            </div>
+            <div class="field-row">
+              <label for="lineHeightInput">Line Height</label>
+              <input id="lineHeightInput" type="number" min="0.8" max="3" step="0.05" value="1.2" />
+            </div>
+            <div class="field-row">
+              <label for="textVAlignSelect">Vertical Align</label>
+              <select id="textVAlignSelect">
+                <option value="top">Top</option>
+                <option value="middle" selected>Middle</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label for="letterSpacingInput">Letter Spacing (px)</label>
+              <input id="letterSpacingInput" type="number" min="-2" max="20" step="0.1" value="0" />
+            </div>
+            <div class="field-row">
+              <label for="textColorInput">Text Color</label>
+              <input id="textColorInput" type="color" value="#1f2430" />
+            </div>
+            <div class="field-row">
+              <label for="bgColorInput">Text BG</label>
+              <input id="bgColorInput" type="color" value="#ffffff" />
+            </div>
+          </div>
+        </div>
+
+        <div id="titleControls" hidden>
+          <h3>Title Tile</h3>
+          <div class="field-row inline">
+            <label for="titleBannerEnabled">Use Title Banner</label>
+            <input id="titleBannerEnabled" type="checkbox" />
+          </div>
+          <div class="field-row">
+            <label for="titleBannerMode">Banner Type</label>
+            <select id="titleBannerMode">
+              <option value="color">Solid Color</option>
+              <option value="gradient">Gradient</option>
+              <option value="image">Image Banner</option>
+            </select>
+          </div>
+          <div class="field-row" id="titleBannerColorRow">
+            <label for="titleBannerColor">Banner Color</label>
+            <input id="titleBannerColor" type="color" value="#1f2430" />
+          </div>
+          <div class="field-row" id="titleBannerGradientRow" hidden>
+            <label for="titleBannerGradient">Banner Gradient</label>
+            <select id="titleBannerGradient">
+              <option value="linear-gradient(90deg, #1f2937, #3b82f6)">Blue Steel</option>
+              <option value="linear-gradient(90deg, #3f1d0f, #b45309)">Amber Forge</option>
+              <option value="linear-gradient(90deg, #0f5132, #22c55e)">Emerald Mint</option>
+              <option value="linear-gradient(90deg, #581c87, #c026d3)">Royal Magenta</option>
+              <option value="linear-gradient(90deg, #7f1d1d, #ef4444)">Crimson Blaze</option>
+            </select>
+          </div>
+          <div class="field-row" id="titleBannerImageRow" hidden>
+            <label>Banner Image</label>
+            <div class="row-actions">
+              <button id="titleBannerUploadBtn" type="button">Upload Banner</button>
+              <input id="titleBannerFileInput" type="file" accept="image/png,image/jpeg" hidden />
+            </div>
+          </div>
+          <div class="field-row">
+            <label for="titleBannerPaddingMm">Banner Text Padding (mm)</label>
+            <input id="titleBannerPaddingMm" type="number" min="0" max="10" step="0.1" value="0.5" />
+          </div>
+        </div>
+
+        <div id="imageControls" hidden>
+          <h3>Image Tile</h3>
+          <div class="field-row">
+            <label for="imageFillMode">Fill Mode</label>
+            <select id="imageFillMode">
+              <option value="image">Image</option>
+              <option value="color">Solid Color</option>
+              <option value="gradient">Gradient</option>
+            </select>
+          </div>
+          <div class="field-row" id="imageFillColorRow" hidden>
+            <label for="imageFillColor">Fill Color</label>
+            <input id="imageFillColor" type="color" value="#f8f8f8" />
+          </div>
+          <div class="field-row" id="imageFillGradientRow" hidden>
+            <label for="imageFillGradient">Fill Gradient</label>
+            <select id="imageFillGradient">
+              <option value="linear-gradient(180deg, #ffffff, #e8f2ff)">Arctic Haze</option>
+              <option value="linear-gradient(180deg, #fffdf3, #f9f1d7)">Champagne Paper</option>
+              <option value="linear-gradient(180deg, #effaf1, #d8f0dd)">Mint Mist</option>
+              <option value="linear-gradient(180deg, #fff0f4, #ffe0ea)">Rose Dust</option>
+              <option value="linear-gradient(180deg, #f4f8ff, #e8eefc)">Soft Sky</option>
+              <option value="linear-gradient(180deg, #fff9ef, #ffe8cf)">Sunlit Parchment</option>
+              <option value="linear-gradient(180deg, #f7f0ff, #e9dcfb)">Lavender Air</option>
+              <option value="linear-gradient(180deg, #f4f6f8, #dfe6ec)">Cloud Steel</option>
+            </select>
+          </div>
+          <div class="row-actions">
+            <button id="uploadImageBtn">Upload Image</button>
+            <input id="imageFileInput" type="file" accept="image/png,image/jpeg" hidden />
+          </div>
+        </div>
+
+        <div id="iconControls" hidden>
+          <h3>Icon Number</h3>
+          <div class="field-grid two-col">
+            <div class="field-row">
+              <label for="iconValueInput">Value</label>
+              <input id="iconValueInput" type="text" value="1" />
+            </div>
+            <div class="field-row">
+              <label>Position</label>
+              <input type="text" value="Overlay" readonly />
+            </div>
+            <div class="field-row">
+              <label for="iconValueColor">Value Color</label>
+              <input id="iconValueColor" type="color" value="#ffffff" />
+            </div>
+            <div class="field-row">
+              <label for="iconValueSize">Value Size (px)</label>
+              <input id="iconValueSize" type="number" min="8" max="120" value="60" />
+            </div>
+            <div class="field-row">
+              <label for="iconOutlineColor">Outline Color</label>
+              <input id="iconOutlineColor" type="color" value="#111111" />
+            </div>
+            <div class="field-row">
+              <label for="iconOutlineWidth">Outline Width</label>
+              <input id="iconOutlineWidth" type="number" min="0" max="12" step="0.5" value="2" />
+            </div>
+            <div class="field-row">
+              <label for="iconOffsetX">Nudge X (px)</label>
+              <input id="iconOffsetX" type="number" min="-120" max="120" step="1" value="0" />
+            </div>
+            <div class="field-row">
+              <label for="iconOffsetY">Nudge Y (px)</label>
+              <input id="iconOffsetY" type="number" min="-120" max="120" step="1" value="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="previewModal" class="preview-modal" hidden>
+      <div class="preview-card" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+        <h2 id="previewTitle">Card Preview</h2>
+        <div class="preview-image-wrap">
+          <img id="previewImage" alt="Card preview" />
+        </div>
+        <div class="row-actions">
+          <button id="previewDownloadBtn" type="button">Download PNG</button>
+          <button id="previewCloseBtn" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tutorialModal" class="tutorial-modal" hidden>
+      <div class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+        <h2 id="tutorialTitle">Welcome to Martin's Card Prototyper</h2>
+        <p id="tutorialIntro">
+          Do you want a quick walkthrough or would you rather jump straight into the editor?
+        </p>
+        <div class="row-actions" id="tutorialChoiceRow">
+          <button id="tutorialViewBtn" type="button">View Tutorial</button>
+          <button id="tutorialSkipBtn" type="button">Skip</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tutorialGuide" class="tutorial-guide" hidden>
+      <div class="tutorial-guide-card">
+        <div class="tutorial-guide-step" id="tutorialGuideStep">Step 1 of 1</div>
+        <p id="tutorialGuideText"></p>
+        <div class="row-actions">
+          <button id="tutorialPrevBtn" type="button">Back</button>
+          <button id="tutorialNextBtn" type="button">Next</button>
+          <button id="tutorialGuideSkipBtn" type="button">Skip</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
