@@ -40,6 +40,7 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - Toggle layer background transparency
 - Per-tile controls:
   - Position and size
+  - Rotation (0°, 90°, 180°, 270°)
   - Tile background transparency
   - Tile outline visibility
 - Image-tile fill controls (Card Background, Main Image, Icon):
@@ -69,6 +70,7 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - Feedback button (`mailto:help@pnpfinder.com` with prefilled subject)
   - Theme toggle (light/dark)
   - Tools menu linking to companion PnP sites
+- Cloudflare Web Analytics snippet included in `index.html`.
 - Mouseover tooltips on major UI controls.
 
 ## Quick Start

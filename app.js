@@ -72,10 +72,12 @@ const els = {
   tileYInput: document.querySelector("#tileYInput"),
   tileWInput: document.querySelector("#tileWInput"),
   tileHInput: document.querySelector("#tileHInput"),
+  tileRotationSelect: document.querySelector("#tileRotationSelect"),
   deleteTileBtn: document.querySelector("#deleteTileBtn"),
   fontFamilySelect: document.querySelector("#fontFamilySelect"),
   fontSizeInput: document.querySelector("#fontSizeInput"),
   lineHeightInput: document.querySelector("#lineHeightInput"),
+  textFlowModeSelect: document.querySelector("#textFlowModeSelect"),
   textVAlignSelect: document.querySelector("#textVAlignSelect"),
   letterSpacingInput: document.querySelector("#letterSpacingInput"),
   textColorInput: document.querySelector("#textColorInput"),
@@ -207,10 +209,12 @@ function applyTooltips() {
     tileYInput: "Set selected tile Y position.",
     tileWInput: "Set selected tile width.",
     tileHInput: "Set selected tile height.",
+    tileRotationSelect: "Rotate selected tile content in 90-degree steps.",
     deleteTileBtn: "Delete the currently selected tile.",
     fontFamilySelect: "Choose font family for selected text tile.",
     fontSizeInput: "Set font size for selected text tile.",
     lineHeightInput: "Set line spacing for selected text tile.",
+    textFlowModeSelect: "Choose rotated text flow or vertical writing mode.",
     textVAlignSelect: "Set vertical alignment inside the text tile.",
     letterSpacingInput: "Set spacing between letters.",
     textColorInput: "Set text color.",
@@ -300,8 +304,12 @@ function getTutorialSteps() {
       text: "The Effect text tile is preloaded too. Click into it and enter your card rules text.",
     },
     {
+      selector: "#tileRotationSelect",
+      text: "Need vertical or rotated layouts? With a tile selected, use Rotation (0/90/180/270). For text tiles, Text Flow lets you choose Rotated Text or Vertical Writing.",
+    },
+    {
       selector: "#tilePalette",
-      text: "After the core tiles are set, use the Tiles panel to add optional tiles such as Icon, Flavor Text, or Card Background.",
+      text: "After the core tiles are set, add optional tiles such as Icon, Flavor Text, or Card Background.",
     },
     {
       selector: "#layersList",
@@ -428,6 +436,13 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function normalizeRotation(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const normalized = ((Math.round(n / 90) * 90) % 360 + 360) % 360;
+  return [0, 90, 180, 270].includes(normalized) ? normalized : 0;
+}
+
 function uuid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -488,6 +503,7 @@ function getDefaultTextStyle(type) {
       fontFamily: "'Playfair Display', 'Times New Roman', serif",
       fontSize: 78,
       lineHeight: 1.2,
+      textFlowMode: "rotated",
       verticalAlign: "middle",
       letterSpacing: 0,
       textAlign: "center",
@@ -500,6 +516,7 @@ function getDefaultTextStyle(type) {
       fontFamily: "'Cormorant Garamond', Georgia, serif",
       fontSize: 28,
       lineHeight: 1.35,
+      textFlowMode: "rotated",
       verticalAlign: "middle",
       letterSpacing: 0,
       textAlign: "left",
@@ -511,6 +528,7 @@ function getDefaultTextStyle(type) {
     fontFamily: "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
     fontSize: 36,
     lineHeight: 1.25,
+    textFlowMode: "rotated",
     verticalAlign: "middle",
     letterSpacing: 0,
     textAlign: "left",
@@ -576,6 +594,7 @@ function createTile(type, xIn, yIn) {
     yIn: yIn ?? defaultY,
     wIn: base.w,
     hIn: type === "main-image" ? mainImageH : base.h,
+    rotationDeg: 0,
     textHtml: isImageType || type === "icon" ? "" : defaultHtml(type),
     titlePlacement: "top",
     hidden: false,
@@ -677,14 +696,18 @@ function renderTile(tile) {
 
   const content = document.createElement("div");
   content.className = "tile-content";
-  content.dataset.tileContentId = tile.id;
+  content.style.transformOrigin = "50% 50%";
 
   if (isTextTile(tile)) {
-    content.contentEditable = "true";
-    content.spellcheck = false;
-    content.innerHTML = tile.textHtml || "";
-    applyTextStyle(content, tile);
-    content.addEventListener("pointerdown", (e) => {
+    const editable = document.createElement("div");
+    editable.className = "tile-text-editable";
+    editable.dataset.tileContentId = tile.id;
+    editable.contentEditable = "true";
+    editable.spellcheck = false;
+    editable.innerHTML = tile.textHtml || "";
+    applyTextStyle(editable, tile);
+    applyTextFlowLayout(editable, tile);
+    editable.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
       if (state.selectedTileId !== tile.id) {
         state.selectedTileId = tile.id;
@@ -692,24 +715,26 @@ function renderTile(tile) {
         renderSelectionPanel();
       }
     });
-    content.addEventListener("focus", () => {
-      state.liveEditable = content;
+    editable.addEventListener("focus", () => {
+      state.liveEditable = editable;
       if (state.selectedTileId !== tile.id) {
         state.selectedTileId = tile.id;
         syncSelectionVisuals();
       }
       renderSelectionPanel();
     });
-    content.addEventListener("blur", () => {
-      if (state.liveEditable === content) {
+    editable.addEventListener("blur", () => {
+      if (state.liveEditable === editable) {
         state.liveEditable = null;
       }
     });
-    content.addEventListener("input", () => {
-      tile.textHtml = content.innerHTML;
+    editable.addEventListener("input", () => {
+      tile.textHtml = editable.innerHTML;
       persistDraft();
     });
+    content.appendChild(editable);
   } else {
+    content.style.rotate = `${normalizeRotation(tile.rotationDeg)}deg`;
     const fill = {
       ...getDefaultImageFill(tile.type),
       ...(tile.imageFill || {}),
@@ -764,6 +789,7 @@ function renderTile(tile) {
     value.style.fontSize = `${tile.icon.valueSize || 24}px`;
     value.style.marginLeft = `${Number(tile.icon.offsetX || 0)}px`;
     value.style.marginTop = `${Number(tile.icon.offsetY || 0)}px`;
+    value.style.rotate = `${normalizeRotation(tile.rotationDeg)}deg`;
     const outline = Number(tile.icon.outlineWidth || 0);
     if (outline > 0) {
       value.style.webkitTextStroke = `${outline}px ${tile.icon.outlineColor || "#111"}`;
@@ -859,6 +885,42 @@ function applyTextStyle(element, tile) {
   }
 }
 
+function applyTextFlowLayout(element, tile) {
+  const rotation = normalizeRotation(tile.rotationDeg);
+  const flowMode = tile.style?.textFlowMode === "vertical" ? "vertical" : "rotated";
+  const contentW = Math.max(12, toPixels(tile.wIn) - 14);
+  const contentH = Math.max(12, toPixels(tile.hIn) - 29);
+  const quarterTurn = rotation === 90 || rotation === 270;
+
+  element.style.position = "absolute";
+  element.style.left = "50%";
+  element.style.top = "50%";
+  element.style.transformOrigin = "50% 50%";
+  element.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+  element.style.overflow = "auto";
+  element.style.whiteSpace = "pre-wrap";
+  element.style.wordBreak = "break-word";
+
+  if (flowMode === "vertical") {
+    element.style.width = `${contentW}px`;
+    element.style.height = `${contentH}px`;
+    element.style.writingMode = "vertical-rl";
+    element.style.textOrientation = "mixed";
+    return;
+  }
+
+  if (quarterTurn) {
+    // Swap layout box so line wrapping follows the Y-axis at 90/270.
+    element.style.width = `${contentH}px`;
+    element.style.height = `${contentW}px`;
+  } else {
+    element.style.width = `${contentW}px`;
+    element.style.height = `${contentH}px`;
+  }
+  element.style.writingMode = "horizontal-tb";
+  element.style.textOrientation = "";
+}
+
 function getEditableForSelectedTile() {
   const tile = getSelectedTile();
   if (!tile || !isTextTile(tile)) return null;
@@ -896,12 +958,14 @@ function renderSelectionPanel() {
   els.tileYInput.value = tile.yIn.toFixed(2);
   els.tileWInput.value = tile.wIn.toFixed(2);
   els.tileHInput.value = tile.hIn.toFixed(2);
+  els.tileRotationSelect.value = String(normalizeRotation(tile.rotationDeg));
 
   const style = tile.style || {};
   els.fontFamilySelect.value =
     style.fontFamily || "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
   els.fontSizeInput.value = style.fontSize || 16;
   els.lineHeightInput.value = style.lineHeight || 1.2;
+  els.textFlowModeSelect.value = style.textFlowMode || "rotated";
   els.textVAlignSelect.value = style.verticalAlign || "middle";
   els.letterSpacingInput.value = style.letterSpacing || 0;
   els.textColorInput.value = style.color || "#1f2430";
@@ -1449,6 +1513,13 @@ function bindEvents() {
     });
   });
 
+  els.tileRotationSelect.addEventListener("change", () => {
+    const tile = getSelectedTile();
+    if (!tile) return;
+    tile.rotationDeg = normalizeRotation(els.tileRotationSelect.value);
+    render();
+  });
+
   els.deleteTileBtn.addEventListener("click", () => {
     if (!state.selectedTileId) return;
     state.design.tiles = state.design.tiles.filter((t) => t.id !== state.selectedTileId);
@@ -1460,6 +1531,7 @@ function bindEvents() {
     els.fontFamilySelect,
     els.fontSizeInput,
     els.lineHeightInput,
+    els.textFlowModeSelect,
     els.textVAlignSelect,
     els.letterSpacingInput,
     els.textColorInput,
@@ -1477,6 +1549,7 @@ function bindEvents() {
         fontFamily: els.fontFamilySelect.value,
         fontSize: Number(els.fontSizeInput.value || 16),
         lineHeight: Number(els.lineHeightInput.value || 1.2),
+        textFlowMode: els.textFlowModeSelect.value || "rotated",
         verticalAlign: els.textVAlignSelect.value || "middle",
         letterSpacing: Number(els.letterSpacingInput.value || 0),
         color: els.textColorInput.value,
@@ -1763,6 +1836,7 @@ function loadDesignFromData(data, resetProjectId) {
     tiles: (data.tiles || []).map((tile) => ({
       ...createTile(tile.type || "effect"),
       ...tile,
+      rotationDeg: normalizeRotation(tile.rotationDeg ?? 0),
       hidden: tile.hidden === true,
       showOutline: tile.showOutline !== false,
       transparentBg:
