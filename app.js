@@ -699,6 +699,7 @@ function renderTile(tile) {
   content.style.transformOrigin = "50% 50%";
 
   if (isTextTile(tile)) {
+    content.style.overflow = "hidden";
     const editable = document.createElement("div");
     editable.className = "tile-text-editable";
     editable.dataset.tileContentId = tile.id;
@@ -888,8 +889,10 @@ function applyTextStyle(element, tile) {
 function applyTextFlowLayout(element, tile) {
   const rotation = normalizeRotation(tile.rotationDeg);
   const flowMode = tile.style?.textFlowMode === "vertical" ? "vertical" : "rotated";
-  const contentW = Math.max(12, toPixels(tile.wIn) - 14);
-  const contentH = Math.max(12, toPixels(tile.hIn) - 29);
+  const insetX = 14;
+  const insetY = 29;
+  const contentW = Math.max(12, toPixels(tile.wIn) - insetX);
+  const contentH = Math.max(12, toPixels(tile.hIn) - insetY);
   const quarterTurn = rotation === 90 || rotation === 270;
 
   element.style.position = "absolute";
@@ -897,9 +900,11 @@ function applyTextFlowLayout(element, tile) {
   element.style.top = "50%";
   element.style.transformOrigin = "50% 50%";
   element.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-  element.style.overflow = "auto";
+  element.style.overflow = "visible";
   element.style.whiteSpace = "pre-wrap";
   element.style.wordBreak = "break-word";
+  element.scrollTop = 0;
+  element.scrollLeft = 0;
 
   if (flowMode === "vertical") {
     element.style.width = `${contentW}px`;
@@ -1956,6 +1961,17 @@ async function captureCardPngDataUrl() {
         stage.style.borderColor = "rgba(36, 55, 88, 0.24)";
         stage.querySelectorAll(".tile").forEach((tileEl) => {
           tileEl.style.backgroundImage = "none";
+        });
+        stage.querySelectorAll(".tile-content").forEach((contentEl) => {
+          if (contentEl.closest(".tile.title, .tile.effect, .tile.flavor")) {
+            contentEl.style.overflow = "hidden";
+          }
+        });
+        stage.querySelectorAll(".tile-text-editable").forEach((textEl) => {
+          textEl.setAttribute("contenteditable", "false");
+          textEl.scrollTop = 0;
+          textEl.scrollLeft = 0;
+          textEl.style.overflow = "visible";
         });
       },
     };
