@@ -297,7 +297,7 @@ function sortFontFamilyOptions() {
 
 function openTutorialPrompt(force = false) {
   if (!els.tutorialModal) return;
-  if (!force && sessionStorage.getItem(TUTORIAL_SEEN_KEY) === "1") return;
+  if (!force && localStorage.getItem(TUTORIAL_SEEN_KEY) === "1") return;
   els.tutorialChoiceRow.hidden = false;
   els.tutorialModal.hidden = false;
 }
@@ -356,7 +356,7 @@ function closeTutorial(markSeen = true) {
   clearTutorialHighlight();
   state.tutorial.active = false;
   if (markSeen) {
-    sessionStorage.setItem(TUTORIAL_SEEN_KEY, "1");
+    localStorage.setItem(TUTORIAL_SEEN_KEY, "1");
   }
 }
 
