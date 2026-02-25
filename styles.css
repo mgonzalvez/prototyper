@@ -32,6 +32,10 @@ body[data-theme="dark"] {
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   color: var(--ink);
@@ -164,6 +168,59 @@ h2 {
   letter-spacing: 0.01em;
 }
 
+.ui-section {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-strong), #ffffff 8%);
+  margin-bottom: 10px;
+  overflow: clip;
+}
+
+.ui-section > summary,
+.subsection > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 10px 11px;
+  user-select: none;
+}
+
+.ui-section > summary:hover,
+.subsection > summary:hover {
+  background: color-mix(in srgb, var(--panel-strong), #ffffff 14%);
+}
+
+.ui-section > summary::-webkit-details-marker,
+.subsection > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ui-section > summary::after,
+.subsection > summary::after {
+  content: "▾";
+  float: right;
+  color: var(--muted);
+  transition: transform 0.16s ease;
+}
+
+.ui-section:not([open]) > summary::after,
+.subsection:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+
+.section-body {
+  padding: 0 11px 10px;
+}
+
+.subsection {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel), #ffffff 10%);
+  margin-top: 8px;
+}
+
 h3 {
   margin: 14px 0 8px;
   font-size: 0.86rem;
@@ -226,6 +283,17 @@ select:focus {
   outline: none;
 }
 
+input[type="text"]:focus-visible,
+input[type="number"]:focus-visible,
+select:focus-visible,
+button:focus-visible,
+.ui-section > summary:focus-visible,
+.subsection > summary:focus-visible,
+.tools-menu a:focus-visible {
+  outline: 2px solid rgba(22, 119, 255, 0.7);
+  outline-offset: 2px;
+}
+
 button {
   border: 1px solid transparent;
   border-radius: 10px;
@@ -253,6 +321,21 @@ button.danger {
   box-shadow: 0 5px 14px rgba(204, 57, 72, 0.22);
 }
 
+button:disabled,
+input:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.ghost-btn {
+  background: color-mix(in srgb, var(--panel-strong), #ffffff 4%);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: none;
+  padding: 6px 10px;
+}
+
 .palette {
   display: grid;
   gap: 7px;
@@ -266,6 +349,11 @@ button.danger {
   margin: 8px 0 12px;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.hint.inline-hint {
+  margin-top: 4px;
+  margin-bottom: 10px;
 }
 
 .row-actions {
@@ -381,8 +469,10 @@ button.danger {
 }
 
 .status {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--muted);
+  font-weight: 600;
+  margin-top: 10px;
 }
 
 .stage-panel {
@@ -776,7 +866,7 @@ body[data-theme="dark"] .preview-modal {
 .floating-palette::before {
   content: "Selected Tile Inspector";
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #5d6978;
   letter-spacing: 0.02em;
   margin-bottom: 8px;

@@ -18,14 +18,19 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - Title tile at top (centered, all caps)
   - Main image tile in middle
   - Effect text tile in lower third
+- Default text style presets:
+  - Title: Fjalla One, 82 px, centered
+  - Effect: Fjalla One, 42 px
+  - Flavor: Cormorant Garamond, 42 px
 - Card-safe border guardrails and snap-to-grid placement (with optional freeform).
 - Rich text controls for text tiles:
   - Bold, italic, underline
-  - Horizontal alignment
+  - Horizontal alignment (dropdown)
   - Vertical alignment
   - Font family/size
   - Line height and letter spacing
   - Text color and tile background color
+  - Text flow mode (rotated flow or vertical writing)
 - Title banner options:
   - Solid color banner
   - Gradient banner
@@ -57,6 +62,7 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - US Letter or A4
   - 3x3, 2x3, or Gutterfold layouts
   - Corner cut guides drawn above card images
+  - Rotation-aware text rendering in preview, PNG, and PDF
   - Export uses per-tile settings for outline/background visibility
 - Project file workflow:
   - Save project as JSON
@@ -64,7 +70,7 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - Start Over reset
 - In-app onboarding:
   - Tutorial prompt with View/Skip on first load
-  - Multi-step guided walkthrough with Next/Back, anchored to relevant UI
+  - Multi-step guided walkthrough with Back/Next/Exit, anchored to relevant UI
   - Reopen tutorial from top bar
 - Top bar utilities:
   - Feedback button (`mailto:help@pnpfinder.com` with prefilled subject)

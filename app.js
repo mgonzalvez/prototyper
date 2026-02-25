@@ -63,6 +63,8 @@ const els = {
   cardStageWrap: document.querySelector("#cardStageWrap"),
   cardStage: document.querySelector("#cardStage"),
   floatingPalette: document.querySelector("#floatingPalette"),
+  inspectorModeRow: document.querySelector("#inspectorModeRow"),
+  inspectorModeBtn: document.querySelector("#inspectorModeBtn"),
   tileControls: document.querySelector("#tileControls"),
   textControlsWrap: document.querySelector("#textControlsWrap"),
   tileNameInput: document.querySelector("#tileNameInput"),
@@ -77,6 +79,7 @@ const els = {
   fontFamilySelect: document.querySelector("#fontFamilySelect"),
   fontSizeInput: document.querySelector("#fontSizeInput"),
   lineHeightInput: document.querySelector("#lineHeightInput"),
+  textAlignSelect: document.querySelector("#textAlignSelect"),
   textFlowModeSelect: document.querySelector("#textFlowModeSelect"),
   textVAlignSelect: document.querySelector("#textVAlignSelect"),
   letterSpacingInput: document.querySelector("#letterSpacingInput"),
@@ -122,6 +125,9 @@ const state = {
     active: false,
     index: 0,
     highlightedSelector: "",
+  },
+  inspector: {
+    advanced: false,
   },
   design: {
     name: "Untitled Design",
@@ -210,10 +216,12 @@ function applyTooltips() {
     tileWInput: "Set selected tile width.",
     tileHInput: "Set selected tile height.",
     tileRotationSelect: "Rotate selected tile content in 90-degree steps.",
+    inspectorModeBtn: "Toggle advanced controls for the selected tile.",
     deleteTileBtn: "Delete the currently selected tile.",
     fontFamilySelect: "Choose font family for selected text tile.",
     fontSizeInput: "Set font size for selected text tile.",
     lineHeightInput: "Set line spacing for selected text tile.",
+    textAlignSelect: "Set horizontal text alignment.",
     textFlowModeSelect: "Choose rotated text flow or vertical writing mode.",
     textVAlignSelect: "Set vertical alignment inside the text tile.",
     letterSpacingInput: "Set spacing between letters.",
@@ -253,7 +261,16 @@ function applyTooltips() {
 
   els.toolbarButtons?.forEach((btn) => {
     const cmd = btn.dataset.cmd || "format";
-    btn.title = `Apply ${cmd} formatting to selected text.`;
+    const cmdLabelMap = {
+      bold: "Bold",
+      italic: "Italic",
+      underline: "Underline",
+      justifyLeft: "Align left",
+      justifyCenter: "Align center",
+      justifyRight: "Align right",
+      justifyFull: "Justify",
+    };
+    btn.title = `${cmdLabelMap[cmd] || cmd} selected text.`;
   });
 }
 
@@ -289,43 +306,39 @@ function getTutorialSteps() {
   return [
     {
       selector: "#projectName",
-      text: "Start by naming your card project.",
+      text: "Name your project so exports and saved JSON files are easy to identify.",
     },
     {
       selector: "#cardStage .tile.title",
-      text: "The Title tile is already on the card by default. Click it and type your card title.",
+      text: "Type your card title directly in the preloaded Title tile.",
     },
     {
       selector: "#cardStage .tile.main-image",
-      text: "The Main Image tile is also preloaded. Select it, then use Upload Image to add artwork (game-icons.net is a great free source).",
+      text: "Select Main Image and upload artwork (game-icons.net is a great free source).",
     },
     {
       selector: "#cardStage .tile.effect",
-      text: "The Effect text tile is preloaded too. Click into it and enter your card rules text.",
+      text: "Enter your rules text in the preloaded Effect tile.",
     },
     {
       selector: "#tileRotationSelect",
-      text: "Need vertical or rotated layouts? With a tile selected, use Rotation (0/90/180/270). For text tiles, Text Flow lets you choose Rotated Text or Vertical Writing.",
+      text: "Use Rotation (0/90/180/270) for side text. Text tiles also support Rotated Text or Vertical Writing.",
     },
     {
       selector: "#tilePalette",
-      text: "After the core tiles are set, add optional tiles such as Icon, Flavor Text, or Card Background.",
+      text: "Add optional tiles like Icon, Flavor Text, and Card Background as needed.",
     },
     {
       selector: "#layersList",
-      text: "Use Layers to reorder tiles, hide layers, and make tile backgrounds transparent.",
+      text: "Use Layers to reorder, hide, and manage tile transparency.",
     },
     {
       selector: "#exportPngBtn",
-      text: "Export a single card image as PNG.",
-    },
-    {
-      selector: "#exportPdfBtn",
-      text: "Export print-ready tiled PDF sheets.",
+      text: "Preview, export PNG, or export print-ready PDF sheets from the Export section.",
     },
     {
       selector: "#saveProjectBtn",
-      text: "Optionally save your work as JSON, then load that JSON later to continue.",
+      text: "Save Project JSON to continue later, then load it back when needed.",
     },
   ];
 }
@@ -500,8 +513,8 @@ function constrainTile(tile) {
 function getDefaultTextStyle(type) {
   if (type === "title") {
     return {
-      fontFamily: "'Playfair Display', 'Times New Roman', serif",
-      fontSize: 78,
+      fontFamily: "'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: 82,
       lineHeight: 1.2,
       textFlowMode: "rotated",
       verticalAlign: "middle",
@@ -514,13 +527,26 @@ function getDefaultTextStyle(type) {
   if (type === "flavor") {
     return {
       fontFamily: "'Cormorant Garamond', Georgia, serif",
-      fontSize: 28,
+      fontSize: 42,
       lineHeight: 1.35,
       textFlowMode: "rotated",
       verticalAlign: "middle",
       letterSpacing: 0,
       textAlign: "left",
       color: "#2e3440",
+      background: "#ffffff",
+    };
+  }
+  if (type === "effect") {
+    return {
+      fontFamily: "'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: 42,
+      lineHeight: 1.25,
+      textFlowMode: "rotated",
+      verticalAlign: "middle",
+      letterSpacing: 0,
+      textAlign: "left",
+      color: "#1f2430",
       background: "#ffffff",
     };
   }
@@ -970,6 +996,7 @@ function renderSelectionPanel() {
     style.fontFamily || "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
   els.fontSizeInput.value = style.fontSize || 16;
   els.lineHeightInput.value = style.lineHeight || 1.2;
+  els.textAlignSelect.value = style.textAlign || "left";
   els.textFlowModeSelect.value = style.textFlowMode || "rotated";
   els.textVAlignSelect.value = style.verticalAlign || "middle";
   els.letterSpacingInput.value = style.letterSpacing || 0;
@@ -979,10 +1006,41 @@ function renderSelectionPanel() {
   const isText = isTextTile(tile);
   const isImage = tile.type === "main-image" || tile.type === "card-background";
   const isIcon = tile.type === "icon";
+  const hasAdvancedControls = tile.type === "title" || tile.type === "icon";
+  if (!hasAdvancedControls) {
+    state.inspector.advanced = false;
+  }
+  const showAdvanced = hasAdvancedControls && state.inspector.advanced;
+  const textAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-text") || [];
+  const titleAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-title") || [];
+  const imageAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-image") || [];
+  const iconAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-icon") || [];
+  textAdvancedEls.forEach((el) => {
+    el.hidden = !(showAdvanced && isText);
+  });
+  titleAdvancedEls.forEach((el) => {
+    el.hidden = !(showAdvanced && tile.type === "title");
+  });
+  imageAdvancedEls.forEach((el) => {
+    el.hidden = !(showAdvanced && (isImage || isIcon));
+  });
+  iconAdvancedEls.forEach((el) => {
+    el.hidden = !(showAdvanced && isIcon);
+  });
+  if (els.inspectorModeRow) {
+    els.inspectorModeRow.hidden = !hasAdvancedControls;
+  }
+  if (els.inspectorModeBtn) {
+    els.inspectorModeBtn.textContent = showAdvanced ? "Show Basic Controls" : "Show Advanced Controls";
+  }
   els.textControlsWrap.hidden = !isText;
   els.titleControls.hidden = tile.type !== "title";
   els.imageControls.hidden = !(isImage || isIcon);
   els.iconControls.hidden = !isIcon;
+  if (!showAdvanced) {
+    els.titleControls.hidden = true;
+    els.iconControls.hidden = true;
+  }
 
   if (tile.type === "title") {
     const banner = tile.titleBanner || {};
@@ -1265,6 +1323,10 @@ function bindEvents() {
   els.openTutorialBtn?.addEventListener("click", () => {
     openTutorialPrompt(true);
   });
+  els.inspectorModeBtn?.addEventListener("click", () => {
+    state.inspector.advanced = !state.inspector.advanced;
+    renderSelectionPanel();
+  });
   els.previewCloseBtn?.addEventListener("click", () => {
     closePreviewModal();
   });
@@ -1536,6 +1598,7 @@ function bindEvents() {
     els.fontFamilySelect,
     els.fontSizeInput,
     els.lineHeightInput,
+    els.textAlignSelect,
     els.textFlowModeSelect,
     els.textVAlignSelect,
     els.letterSpacingInput,
@@ -1554,6 +1617,7 @@ function bindEvents() {
         fontFamily: els.fontFamilySelect.value,
         fontSize: Number(els.fontSizeInput.value || 16),
         lineHeight: Number(els.lineHeightInput.value || 1.2),
+        textAlign: els.textAlignSelect.value || "left",
         textFlowMode: els.textFlowModeSelect.value || "rotated",
         verticalAlign: els.textVAlignSelect.value || "middle",
         letterSpacing: Number(els.letterSpacingInput.value || 0),
@@ -1569,21 +1633,6 @@ function bindEvents() {
       const cmd = btn.dataset.cmd;
       const tile = getSelectedTile();
       if (!tile || !isTextTile(tile)) return;
-
-      if (cmd === "justifyLeft" || cmd === "justifyCenter" || cmd === "justifyRight" || cmd === "justifyFull") {
-        const map = {
-          justifyLeft: "left",
-          justifyCenter: "center",
-          justifyRight: "right",
-          justifyFull: "justify",
-        };
-        tile.style = {
-          ...tile.style,
-          textAlign: map[cmd],
-        };
-        render();
-        return;
-      }
 
       const editable = state.liveEditable || getEditableForSelectedTile();
       if (!editable) return;
@@ -2037,21 +2086,31 @@ function getPositions(layoutConfig, pageW, pageH, cardW, cardH, safeMarginPt = i
 
 function drawCutGuides(page, box) {
   const l = 7;
-  const s = 0.8;
-  const col = PDFLib.rgb(0.25, 0.25, 0.25);
+  const s = 1.0;
+  const halo = PDFLib.rgb(1, 1, 1);
+  const col = PDFLib.rgb(0.18, 0.18, 0.18);
   const x1 = box.x;
   const y1 = box.y;
   const x2 = box.x + box.width;
   const y2 = box.y + box.height;
+  const segments = [
+    [{ x: x1 - l, y: y1 }, { x: x1, y: y1 }],
+    [{ x: x1, y: y1 - l }, { x: x1, y: y1 }],
+    [{ x: x2, y: y1 - l }, { x: x2, y: y1 }],
+    [{ x: x2, y: y1 }, { x: x2 + l, y: y1 }],
+    [{ x: x1 - l, y: y2 }, { x: x1, y: y2 }],
+    [{ x: x1, y: y2 }, { x: x1, y: y2 + l }],
+    [{ x: x2, y: y2 }, { x: x2 + l, y: y2 }],
+    [{ x: x2, y: y2 }, { x: x2, y: y2 + l }],
+  ];
 
-  page.drawLine({ start: { x: x1 - l, y: y1 }, end: { x: x1, y: y1 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x1, y: y1 - l }, end: { x: x1, y: y1 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x2, y: y1 - l }, end: { x: x2, y: y1 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x2, y: y1 }, end: { x: x2 + l, y: y1 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x1 - l, y: y2 }, end: { x: x1, y: y2 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x1, y: y2 }, end: { x: x1, y: y2 + l }, thickness: s, color: col });
-  page.drawLine({ start: { x: x2, y: y2 }, end: { x: x2 + l, y: y2 }, thickness: s, color: col });
-  page.drawLine({ start: { x: x2, y: y2 }, end: { x: x2, y: y2 + l }, thickness: s, color: col });
+  // Draw white halo first so guides remain visible over any card artwork.
+  segments.forEach(([start, end]) => {
+    page.drawLine({ start, end, thickness: s + 1.2, color: halo });
+  });
+  segments.forEach(([start, end]) => {
+    page.drawLine({ start, end, thickness: s, color: col });
+  });
 }
 
 async function exportPdf() {

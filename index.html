@@ -37,99 +37,131 @@
 
     <main class="app-shell">
       <section class="panel left-panel">
-        <h2>Project</h2>
-        <div class="field-row">
-          <label for="projectName">Name</label>
-          <input id="projectName" type="text" placeholder="My Awesome Card Design" />
-        </div>
-        <div class="field-row">
-          <label for="cardSizeSelect">Card Size</label>
-          <select id="cardSizeSelect">
-            <option value="poker">Poker (2.5 x 3.5 in)</option>
-            <option value="tarot">Tarot (2.75 x 4.75 in)</option>
-            <option value="mini">Mini (1.75 x 2.5 in)</option>
-            <option value="custom">Custom</option>
-          </select>
-        </div>
-        <div class="field-grid two-col" id="customSizeWrap" hidden>
-          <div class="field-row">
-            <label for="customWidth">Width (in)</label>
-            <input id="customWidth" type="number" min="1" max="10" step="0.01" value="2.5" />
+        <details class="ui-section" open>
+          <summary>Project</summary>
+          <div class="section-body">
+            <div class="field-row">
+              <label for="projectName">Project Name</label>
+              <input id="projectName" type="text" placeholder="My Awesome Card Design" />
+            </div>
+            <div class="field-row">
+              <label for="cardSizeSelect">Card Size</label>
+              <select id="cardSizeSelect">
+                <option value="poker">Poker (2.5 x 3.5 in)</option>
+                <option value="tarot">Tarot (2.75 x 4.75 in)</option>
+                <option value="mini">Mini (1.75 x 2.5 in)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="field-row inline">
+              <label for="snapToggle">Snap to Grid</label>
+              <input id="snapToggle" type="checkbox" checked />
+            </div>
+            <div class="field-row inline">
+              <label for="showSafeBorder">Show Safe Border</label>
+              <input id="showSafeBorder" type="checkbox" checked />
+            </div>
+            <details class="subsection">
+              <summary>Advanced Project Settings</summary>
+              <div class="section-body">
+                <div class="field-grid two-col" id="customSizeWrap" hidden>
+                  <div class="field-row">
+                    <label for="customWidth">Width (in)</label>
+                    <input id="customWidth" type="number" min="1" max="10" step="0.01" value="2.5" />
+                  </div>
+                  <div class="field-row">
+                    <label for="customHeight">Height (in)</label>
+                    <input id="customHeight" type="number" min="1" max="14" step="0.01" value="3.5" />
+                  </div>
+                </div>
+                <div class="field-row">
+                  <label for="gridStepInput">Grid Step (in)</label>
+                  <input id="gridStepInput" type="number" min="0.005" max="0.5" step="0.005" value="0.005" />
+                </div>
+              </div>
+            </details>
           </div>
-          <div class="field-row">
-            <label for="customHeight">Height (in)</label>
-            <input id="customHeight" type="number" min="1" max="14" step="0.01" value="3.5" />
+        </details>
+
+        <details class="ui-section" open>
+          <summary>Tiles</summary>
+          <div class="section-body">
+            <div class="palette" id="tilePalette">
+              <button draggable="true" data-tile-type="card-background">Card Background Image</button>
+              <button draggable="true" data-tile-type="title">Title Tile</button>
+              <button draggable="true" data-tile-type="effect">Effect Text</button>
+              <button draggable="true" data-tile-type="flavor">Flavor Text</button>
+              <button draggable="true" data-tile-type="main-image">Main Image</button>
+              <button draggable="true" data-tile-type="icon">Icon Tile</button>
+            </div>
+            <p class="hint">Drag a tile type onto the card canvas.</p>
+            <p class="hint">
+              Need art assets? Download free icon and image assets from
+              <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a>.
+            </p>
           </div>
-        </div>
-        <div class="field-row inline">
-          <label for="snapToggle">Snap to grid</label>
-          <input id="snapToggle" type="checkbox" checked />
-        </div>
-        <div class="field-row">
-          <label for="gridStepInput">Grid Step (in)</label>
-          <input id="gridStepInput" type="number" min="0.005" max="0.5" step="0.005" value="0.005" />
-        </div>
-        <div class="field-row inline">
-          <label for="showSafeBorder">Show safe border</label>
-          <input id="showSafeBorder" type="checkbox" checked />
-        </div>
+        </details>
 
-        <h2>Tiles</h2>
-        <div class="palette" id="tilePalette">
-          <button draggable="true" data-tile-type="card-background">Card Background Image</button>
-          <button draggable="true" data-tile-type="title">Title Tile</button>
-          <button draggable="true" data-tile-type="effect">Effect Text</button>
-          <button draggable="true" data-tile-type="flavor">Flavor Text</button>
-          <button draggable="true" data-tile-type="main-image">Main Image</button>
-          <button draggable="true" data-tile-type="icon">Icon Tile</button>
-        </div>
-        <p class="hint">Drag a tile type onto the card canvas.</p>
-        <p class="hint">
-          Need art assets? Download free icon and image assets from
-          <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a>.
-        </p>
+        <details class="ui-section">
+          <summary>Layers</summary>
+          <div class="section-body">
+            <p class="hint">Top layer appears first. Use arrows to reorder.</p>
+            <ul id="layersList" class="layers-list"></ul>
+          </div>
+        </details>
 
-        <h2>Layers</h2>
-        <p class="hint">Top layer appears first. Use arrows to reorder.</p>
-        <ul id="layersList" class="layers-list"></ul>
+        <details class="ui-section">
+          <summary>Project File</summary>
+          <div class="section-body">
+            <div class="row-actions">
+              <button id="saveProjectBtn">Save Project JSON</button>
+              <button id="loadProjectBtn">Load Project JSON</button>
+              <input id="projectFileInput" type="file" accept="application/json" hidden />
+            </div>
+            <div class="row-actions">
+              <button id="resetProjectBtn" class="danger">Start Over</button>
+            </div>
+          </div>
+        </details>
 
-        <h2>Project File</h2>
-        <div class="row-actions">
-          <button id="saveProjectBtn">Save JSON</button>
-          <button id="loadProjectBtn">Load JSON</button>
-          <input id="projectFileInput" type="file" accept="application/json" hidden />
-        </div>
-        <div class="row-actions">
-          <button id="resetProjectBtn" class="danger">Start Over</button>
-        </div>
-
-        <h2>Export</h2>
-        <div class="row-actions">
-          <button id="previewCardBtn">Preview Card</button>
-          <button id="exportPngBtn">Export PNG</button>
-        </div>
-        <div class="field-row">
-          <label for="pdfPageSize">PDF Page</label>
-          <select id="pdfPageSize">
-            <option value="letter">US Letter</option>
-            <option value="a4">A4</option>
-          </select>
-        </div>
-        <div class="field-row">
-          <label for="pdfLayout">PDF Layout</label>
-          <select id="pdfLayout">
-            <option value="grid3x3">3x3 Grid</option>
-            <option value="grid2x3">2x3 Grid</option>
-            <option value="gutterfold">Gutterfold</option>
-          </select>
-        </div>
-        <div class="field-row">
-          <label for="pdfCopies">Cards in PDF</label>
-          <input id="pdfCopies" type="number" min="1" max="300" value="9" />
-        </div>
-        <div class="row-actions">
-          <button id="exportPdfBtn">Export PDF</button>
-        </div>
+        <details class="ui-section" open>
+          <summary>Export</summary>
+          <div class="section-body">
+            <div class="row-actions">
+              <button id="previewCardBtn">Preview Card</button>
+              <button id="exportPngBtn">Export PNG</button>
+            </div>
+            <p class="hint inline-hint">Preview first, then export when the card looks right.</p>
+            <details class="subsection" open>
+              <summary>Print Sheet (PDF)</summary>
+              <div class="section-body">
+                <div class="field-row">
+                  <label for="pdfPageSize">PDF Page</label>
+                  <select id="pdfPageSize">
+                    <option value="letter">US Letter</option>
+                    <option value="a4">A4</option>
+                  </select>
+                </div>
+                <div class="field-row">
+                  <label for="pdfLayout">PDF Layout</label>
+                  <select id="pdfLayout">
+                    <option value="grid3x3">3x3 Grid</option>
+                    <option value="grid2x3">2x3 Grid</option>
+                    <option value="gutterfold">Gutterfold</option>
+                  </select>
+                </div>
+                <div class="field-row">
+                  <label for="pdfCopies">Cards in PDF</label>
+                  <input id="pdfCopies" type="number" min="1" max="300" value="9" />
+                </div>
+                <div class="row-actions">
+                  <button id="exportPdfBtn">Export PDF</button>
+                </div>
+                <p class="hint inline-hint">Use PDF export for print-ready card sheets and cut guides.</p>
+              </div>
+            </details>
+          </div>
+        </details>
         <p id="statusText" class="status">Ready.</p>
       </section>
 
@@ -154,9 +186,14 @@
 
     <aside id="floatingPalette" class="floating-palette" hidden>
       <h2>Selection</h2>
+      <div id="inspectorModeRow" class="field-row inline">
+        <label for="inspectorModeBtn">Controls</label>
+        <button id="inspectorModeBtn" type="button" class="ghost-btn">Show Advanced</button>
+      </div>
+      <p id="inspectorModeHint" class="hint inline-hint">Switch between focused and advanced controls.</p>
       <div id="tileControls" hidden>
         <div class="field-row">
-          <label for="tileNameInput">Tile Label</label>
+          <label for="tileNameInput">Label</label>
           <input id="tileNameInput" type="text" />
         </div>
         <div class="field-row inline">
@@ -177,11 +214,11 @@
             <input id="tileYInput" type="number" step="0.01" />
           </div>
           <div class="field-row">
-            <label for="tileWInput">W (in)</label>
+            <label for="tileWInput">Width (in)</label>
             <input id="tileWInput" type="number" min="0.2" step="0.01" />
           </div>
           <div class="field-row">
-            <label for="tileHInput">H (in)</label>
+            <label for="tileHInput">Height (in)</label>
             <input id="tileHInput" type="number" min="0.2" step="0.01" />
           </div>
         </div>
@@ -200,14 +237,11 @@
 
         <div id="textControlsWrap">
           <h3>Text Tools</h3>
+          <p class="hint inline-hint">Type directly in the tile to edit text content.</p>
           <div class="toolbar">
             <button data-cmd="bold"><b>B</b></button>
             <button data-cmd="italic"><i>I</i></button>
             <button data-cmd="underline"><u>U</u></button>
-            <button data-cmd="justifyLeft">L</button>
-            <button data-cmd="justifyCenter">C</button>
-            <button data-cmd="justifyRight">R</button>
-            <button data-cmd="justifyFull">J</button>
           </div>
           <div class="field-grid two-col">
             <div class="field-row">
@@ -261,18 +295,27 @@
               <label for="fontSizeInput">Font Size (px)</label>
               <input id="fontSizeInput" type="number" min="8" max="96" value="18" />
             </div>
-            <div class="field-row">
+            <div class="field-row inspector-advanced adv-text">
               <label for="lineHeightInput">Line Height</label>
               <input id="lineHeightInput" type="number" min="0.8" max="3" step="0.05" value="1.2" />
             </div>
             <div class="field-row">
+              <label for="textAlignSelect">Text Align</label>
+              <select id="textAlignSelect">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+                <option value="justify">Justify</option>
+              </select>
+            </div>
+            <div class="field-row inspector-advanced adv-text">
               <label for="textFlowModeSelect">Text Flow</label>
               <select id="textFlowModeSelect">
                 <option value="rotated">Rotated Text</option>
                 <option value="vertical">Vertical Writing</option>
               </select>
             </div>
-            <div class="field-row">
+            <div class="field-row inspector-advanced adv-text">
               <label for="textVAlignSelect">Vertical Align</label>
               <select id="textVAlignSelect">
                 <option value="top">Top</option>
@@ -280,7 +323,7 @@
                 <option value="bottom">Bottom</option>
               </select>
             </div>
-            <div class="field-row">
+            <div class="field-row inspector-advanced adv-text">
               <label for="letterSpacingInput">Letter Spacing (px)</label>
               <input id="letterSpacingInput" type="number" min="-2" max="20" step="0.1" value="0" />
             </div>
@@ -288,14 +331,14 @@
               <label for="textColorInput">Text Color</label>
               <input id="textColorInput" type="color" value="#1f2430" />
             </div>
-            <div class="field-row">
-              <label for="bgColorInput">Text BG</label>
+            <div class="field-row inspector-advanced adv-text">
+              <label for="bgColorInput">Text Background</label>
               <input id="bgColorInput" type="color" value="#ffffff" />
             </div>
           </div>
         </div>
 
-        <div id="titleControls" hidden>
+        <div id="titleControls" class="inspector-advanced adv-title" hidden>
           <h3>Title Tile</h3>
           <div class="field-row inline">
             <label for="titleBannerEnabled">Use Title Banner</label>
@@ -338,7 +381,7 @@
 
         <div id="imageControls" hidden>
           <h3>Image Tile</h3>
-          <div class="field-row">
+          <div class="field-row inspector-advanced adv-image">
             <label for="imageFillMode">Fill Mode</label>
             <select id="imageFillMode">
               <option value="image">Image</option>
@@ -346,11 +389,11 @@
               <option value="gradient">Gradient</option>
             </select>
           </div>
-          <div class="field-row" id="imageFillColorRow" hidden>
+          <div class="field-row inspector-advanced adv-image" id="imageFillColorRow" hidden>
             <label for="imageFillColor">Fill Color</label>
             <input id="imageFillColor" type="color" value="#f8f8f8" />
           </div>
-          <div class="field-row" id="imageFillGradientRow" hidden>
+          <div class="field-row inspector-advanced adv-image" id="imageFillGradientRow" hidden>
             <label for="imageFillGradient">Fill Gradient</label>
             <select id="imageFillGradient">
               <option value="linear-gradient(180deg, #ffffff, #e8f2ff)">Arctic Haze</option>
@@ -369,7 +412,7 @@
           </div>
         </div>
 
-        <div id="iconControls" hidden>
+        <div id="iconControls" class="inspector-advanced adv-icon" hidden>
           <h3>Icon Number</h3>
           <div class="field-grid two-col">
             <div class="field-row">
@@ -442,7 +485,7 @@
         <div class="row-actions">
           <button id="tutorialPrevBtn" type="button">Back</button>
           <button id="tutorialNextBtn" type="button">Next</button>
-          <button id="tutorialGuideSkipBtn" type="button">Skip</button>
+          <button id="tutorialGuideSkipBtn" type="button">Exit Tutorial</button>
         </div>
       </div>
     </div>
