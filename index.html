@@ -84,6 +84,19 @@
         </details>
 
         <details class="ui-section" open>
+          <summary>Cards</summary>
+          <div class="section-body">
+            <div class="row-actions">
+              <button id="newCardBtn" type="button">New Card</button>
+              <button id="duplicateCardBtn" type="button">Duplicate</button>
+              <button id="deleteCardBtn" type="button" class="danger">Delete</button>
+            </div>
+            <p id="cardsCountText" class="hint inline-hint">1 card in session.</p>
+            <ul id="cardsList" class="cards-list"></ul>
+          </div>
+        </details>
+
+        <details class="ui-section" open>
           <summary>Tiles</summary>
           <div class="section-body">
             <div class="palette" id="tilePalette">
@@ -127,6 +140,13 @@
         <details class="ui-section" open>
           <summary>Export</summary>
           <div class="section-body">
+            <div class="field-row">
+              <label for="exportScopeSelect">Export Scope</label>
+              <select id="exportScopeSelect">
+                <option value="active">Active Card</option>
+                <option value="all">All Cards in Session</option>
+              </select>
+            </div>
             <div class="row-actions">
               <button id="previewCardBtn">Preview Card</button>
               <button id="exportPngBtn">Export PNG</button>

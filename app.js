@@ -25,6 +25,11 @@ const els = {
   customSizeWrap: document.querySelector("#customSizeWrap"),
   customWidth: document.querySelector("#customWidth"),
   customHeight: document.querySelector("#customHeight"),
+  newCardBtn: document.querySelector("#newCardBtn"),
+  duplicateCardBtn: document.querySelector("#duplicateCardBtn"),
+  deleteCardBtn: document.querySelector("#deleteCardBtn"),
+  cardsCountText: document.querySelector("#cardsCountText"),
+  cardsList: document.querySelector("#cardsList"),
   snapToggle: document.querySelector("#snapToggle"),
   gridStepInput: document.querySelector("#gridStepInput"),
   showSafeBorder: document.querySelector("#showSafeBorder"),
@@ -50,6 +55,7 @@ const els = {
   projectFileInput: document.querySelector("#projectFileInput"),
   resetProjectBtn: document.querySelector("#resetProjectBtn"),
   previewCardBtn: document.querySelector("#previewCardBtn"),
+  exportScopeSelect: document.querySelector("#exportScopeSelect"),
   exportPngBtn: document.querySelector("#exportPngBtn"),
   pdfPageSize: document.querySelector("#pdfPageSize"),
   pdfLayout: document.querySelector("#pdfLayout"),
@@ -117,6 +123,8 @@ const els = {
 
 const state = {
   projectId: null,
+  activeCardId: null,
+  cards: [],
   selectedTileId: null,
   dragTileType: null,
   liveEditable: null,
@@ -129,6 +137,7 @@ const state = {
   inspector: {
     advanced: false,
   },
+  suspendDraftSync: false,
   design: {
     name: "Untitled Design",
     card: { preset: "poker", widthIn: 2.5, heightIn: 3.5 },
@@ -139,6 +148,93 @@ const state = {
     updatedAt: new Date().toISOString(),
   },
 };
+
+function cloneDesign(design) {
+  return cleanDesign(design);
+}
+
+function getActiveCardRecord() {
+  return state.cards.find((card) => card.id === state.activeCardId) || null;
+}
+
+function getCardDisplayName(card, index) {
+  const fallback = `Card ${index + 1}`;
+  return (card?.name || "").trim() || fallback;
+}
+
+function syncActiveCardFromState() {
+  const active = getActiveCardRecord();
+  if (!active) return;
+  active.name = state.design.name || active.name;
+  active.design = cloneDesign(state.design);
+  active.selectedTileId = state.selectedTileId;
+}
+
+function activateCard(cardId) {
+  const next = state.cards.find((card) => card.id === cardId);
+  if (!next) return;
+  syncActiveCardFromState();
+  state.activeCardId = next.id;
+  state.design = cloneDesign(next.design);
+  const selectedExists = state.design.tiles.some((tile) => tile.id === next.selectedTileId);
+  state.selectedTileId = selectedExists ? next.selectedTileId : state.design.tiles[0]?.id || null;
+  state.liveEditable = null;
+  syncInputsFromState();
+  render();
+}
+
+function updateCardSessionActions() {
+  if (!els.deleteCardBtn || !els.duplicateCardBtn) return;
+  const hasCards = state.cards.length > 0;
+  els.duplicateCardBtn.disabled = !hasCards;
+  els.deleteCardBtn.disabled = state.cards.length <= 1;
+}
+
+function renderCardsPanel() {
+  if (!els.cardsList) return;
+  els.cardsList.innerHTML = "";
+  state.cards.forEach((card, index) => {
+    const li = document.createElement("li");
+    li.className = "card-item";
+    if (card.id === state.activeCardId) li.classList.add("active");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = getCardDisplayName(card, index);
+    btn.title = "Switch to this card";
+    btn.addEventListener("click", () => {
+      activateCard(card.id);
+    });
+    li.appendChild(btn);
+    els.cardsList.appendChild(li);
+  });
+  if (els.cardsCountText) {
+    const count = state.cards.length;
+    els.cardsCountText.textContent = count === 1 ? "1 card in session." : `${count} cards in session.`;
+  }
+  updateCardSessionActions();
+}
+
+function buildStarterDesignFromCurrent(name, baseSettings = {}) {
+  const starter = buildDefaultDesign({
+    name: name || "Untitled Design",
+    card: { ...(baseSettings.card || state.design.card) },
+    snapEnabled:
+      baseSettings.snapEnabled != null ? baseSettings.snapEnabled : state.design.snapEnabled,
+    gridStepIn:
+      baseSettings.gridStepIn != null ? baseSettings.gridStepIn : state.design.gridStepIn,
+    showSafeBorder:
+      baseSettings.showSafeBorder != null ? baseSettings.showSafeBorder : state.design.showSafeBorder,
+  });
+  const prevDesign = state.design;
+  state.design = starter;
+  const t1 = createTile("title");
+  const t2 = createTile("main-image");
+  const t3 = createTile("effect");
+  starter.tiles.push(t1, t2, t3);
+  starter.updatedAt = new Date().toISOString();
+  state.design = prevDesign;
+  return starter;
+}
 
 function buildDefaultDesign(overrides = {}) {
   const defaults = {
@@ -192,6 +288,9 @@ function initTheme() {
 function applyTooltips() {
   const tips = {
     projectName: "Name your current card project.",
+    newCardBtn: "Create a new card in this session.",
+    duplicateCardBtn: "Duplicate the current card and edit the copy independently.",
+    deleteCardBtn: "Delete the currently active card.",
     cardSizeSelect: "Choose a preset card size or Custom.",
     customWidth: "Set custom card width.",
     customHeight: "Set custom card height.",
@@ -203,6 +302,7 @@ function applyTooltips() {
     loadProjectBtn: "Load a previously saved project JSON file.",
     resetProjectBtn: "Start over with the default starter tiles.",
     previewCardBtn: "Preview the card image before exporting.",
+    exportScopeSelect: "Choose whether to export only the active card or all cards in this session.",
     exportPngBtn: "Export the current card as a PNG image.",
     pdfPageSize: "Choose paper size for PDF sheet export.",
     pdfLayout: "Choose tiled sheet arrangement for PDF export.",
@@ -329,16 +429,28 @@ function getTutorialSteps() {
       text: "Add optional tiles like Icon, Flavor Text, and Card Background as needed.",
     },
     {
+      selector: "#cardsList",
+      text: "Use Cards to switch between designs, duplicate a card, or start a new one in the same session.",
+    },
+    {
       selector: "#layersList",
       text: "Use Layers to reorder, hide, and manage tile transparency.",
     },
     {
+      selector: "#exportScopeSelect",
+      text: "Set Export Scope to Active Card or All Cards in Session before exporting.",
+    },
+    {
       selector: "#exportPngBtn",
-      text: "Preview, export PNG, or export print-ready PDF sheets from the Export section.",
+      text: "Export PNG for the active card, or export all cards in session as separate PNG files.",
+    },
+    {
+      selector: "#exportPdfBtn",
+      text: "Export PDF for print sheets. With All Cards scope, each card is placed once with cut guides.",
     },
     {
       selector: "#saveProjectBtn",
-      text: "Save Project JSON to continue later, then load it back when needed.",
+      text: "Save Project JSON stores your full multi-card session; load it later to continue where you left off.",
     },
   ];
 }
@@ -970,6 +1082,7 @@ function render() {
   });
   renderSelectionPanel();
   renderLayersPanel();
+  renderCardsPanel();
   if (state.tutorial.active) {
     renderTutorialGuide();
   }
@@ -1363,6 +1476,57 @@ function bindEvents() {
     }
   });
 
+  els.newCardBtn?.addEventListener("click", () => {
+    syncActiveCardFromState();
+    const nextIndex = state.cards.length + 1;
+    const nextName = `Card ${nextIndex}`;
+    const design = buildStarterDesignFromCurrent(nextName);
+    const record = {
+      id: uuid(),
+      name: nextName,
+      design,
+      selectedTileId: design.tiles[0]?.id || null,
+    };
+    state.cards.push(record);
+    activateCard(record.id);
+    setStatus("New card added to session.");
+  });
+
+  els.duplicateCardBtn?.addEventListener("click", () => {
+    const active = getActiveCardRecord();
+    if (!active) return;
+    syncActiveCardFromState();
+    const copy = cloneDesign(active.design);
+    const copyName = `${active.name || "Card"} (Copy)`;
+    copy.name = copyName;
+    const record = {
+      id: uuid(),
+      name: copyName,
+      design: copy,
+      selectedTileId: active.selectedTileId || copy.tiles[0]?.id || null,
+    };
+    state.cards.push(record);
+    activateCard(record.id);
+    setStatus("Card duplicated.");
+  });
+
+  els.deleteCardBtn?.addEventListener("click", () => {
+    if (state.cards.length <= 1) return;
+    const active = getActiveCardRecord();
+    if (!active) return;
+    const ok = window.confirm(`Delete "${active.name || "this card"}"?`);
+    if (!ok) return;
+    const activeIndex = state.cards.findIndex((card) => card.id === active.id);
+    if (activeIndex < 0) return;
+    state.cards.splice(activeIndex, 1);
+    const nextIndex = Math.max(0, activeIndex - 1);
+    const next = state.cards[nextIndex] || state.cards[0];
+    if (next) {
+      activateCard(next.id);
+      setStatus("Card deleted.");
+    }
+  });
+
   els.cardSizeSelect.addEventListener("change", () => {
     state.design.card.preset = els.cardSizeSelect.value;
     if (els.cardSizeSelect.value === "custom") {
@@ -1736,6 +1900,9 @@ function bindEvents() {
 
   els.projectName.addEventListener("input", () => {
     state.design.name = els.projectName.value || "Untitled Design";
+    const active = getActiveCardRecord();
+    if (active) active.name = state.design.name;
+    renderCardsPanel();
     persistDraft();
   });
 
@@ -1769,12 +1936,25 @@ function bindEvents() {
 
   els.exportPngBtn.addEventListener("click", async () => {
     try {
-      const png = await captureCardPngDataUrl();
-      const a = document.createElement("a");
-      a.href = png;
-      a.download = `${safeFile(state.design.name || "card")}.png`;
-      a.click();
-      setStatus("PNG exported.");
+      const scope = els.exportScopeSelect?.value || "active";
+      if (scope === "all") {
+        const cards = await captureExportCards("all");
+        if (!cards.length) {
+          setStatus("No cards available for PNG export.");
+          return;
+        }
+        cards.forEach((card, index) => {
+          const filename = `${String(index + 1).padStart(2, "0")}-${safeFile(card.name || `card-${index + 1}`)}.png`;
+          window.setTimeout(() => {
+            triggerDownload(card.dataUrl, filename);
+          }, index * 120);
+        });
+        setStatus(`${cards.length} PNG files queued for download.`);
+      } else {
+        const png = await captureCardPngDataUrl();
+        triggerDownload(png, `${safeFile(state.design.name || "card")}.png`);
+        setStatus("PNG exported.");
+      }
     } catch (error) {
       console.error(error);
       setStatus(`PNG export failed: ${error?.message || "Unknown error."}`);
@@ -1840,6 +2020,51 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function triggerDownload(url, filename) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+}
+
+async function captureExportCards(scope, options = {}) {
+  const { rotateForLayout = false, layoutKey = "" } = options;
+  syncActiveCardFromState();
+  const cardIds =
+    scope === "all"
+      ? state.cards.map((card) => card.id)
+      : state.activeCardId
+        ? [state.activeCardId]
+        : [];
+  if (!cardIds.length) return [];
+
+  const originalCardId = state.activeCardId;
+  const previousSuspend = state.suspendDraftSync;
+  const out = [];
+  state.suspendDraftSync = true;
+  try {
+    for (const cardId of cardIds) {
+      if (cardId !== state.activeCardId) activateCard(cardId);
+      const active = getActiveCardRecord();
+      let png = await captureCardPngDataUrl();
+      if (rotateForLayout && layoutKey === "gutterfold") {
+        png = await rotateDataUrlClockwise(png);
+      }
+      out.push({
+        cardId,
+        name: active?.name || state.design.name || "Card",
+        dataUrl: png,
+      });
+    }
+  } finally {
+    if (originalCardId && originalCardId !== state.activeCardId) {
+      activateCard(originalCardId);
+    }
+    state.suspendDraftSync = previousSuspend;
+  }
+  return out;
+}
+
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -1849,8 +2074,90 @@ function loadImage(src) {
   });
 }
 
+function normalizeDesignData(data = {}, fallbackName = "Imported Design") {
+  const preset = data.card?.preset || "poker";
+  const presetSize = cardSizes[preset] || cardSizes.poker;
+  const normalized = {
+    name: data.name || fallbackName,
+    card: {
+      preset,
+      widthIn: Number(data.card?.widthIn || presetSize.w),
+      heightIn: Number(data.card?.heightIn || presetSize.h),
+    },
+    snapEnabled: data.snapEnabled !== false,
+    gridStepIn: clamp(Number(data.gridStepIn || 0.005), 0.005, 0.5),
+    showSafeBorder: data.showSafeBorder !== false,
+    tiles: [],
+    updatedAt: data.updatedAt || new Date().toISOString(),
+  };
+
+  const previousDesign = state.design;
+  state.design = {
+    ...state.design,
+    card: { ...normalized.card },
+  };
+  normalized.tiles = (data.tiles || []).map((tile) => ({
+    ...createTile(tile.type || "effect"),
+    ...tile,
+    rotationDeg: normalizeRotation(tile.rotationDeg ?? 0),
+    hidden: tile.hidden === true,
+    showOutline: tile.showOutline !== false,
+    transparentBg:
+      tile.transparentBg != null
+        ? tile.transparentBg
+        : tile.type === "card-background" || tile.type === "main-image" || tile.type === "icon",
+    style: {
+      ...getDefaultTextStyle(tile.type || "effect"),
+      ...(tile.style || {}),
+    },
+    imageFill: {
+      ...getDefaultImageFill(tile.type || "effect"),
+      ...(tile.imageFill || {}),
+    },
+    titleBanner: {
+      enabled: false,
+      mode: "color",
+      color: "#1f2430",
+      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
+      imageDataUrl: "",
+      paddingMm: 0.5,
+      ...(tile.titleBanner || {}),
+    },
+    icon: {
+      value: "1",
+      position: "overlay",
+      valueColor: "#ffffff",
+      valueSize: 60,
+      outlineColor: "#111111",
+      outlineWidth: 2,
+      offsetX: 0,
+      offsetY: 0,
+      ...(tile.icon || {}),
+    },
+  }));
+  state.design = previousDesign;
+  return normalized;
+}
+
+function buildProjectPayload() {
+  syncActiveCardFromState();
+  return {
+    version: 2,
+    format: "martins-card-prototyper-project",
+    savedAt: new Date().toISOString(),
+    activeCardId: state.activeCardId,
+    cards: state.cards.map((card, index) => ({
+      id: card.id || uuid(),
+      name: getCardDisplayName(card, index),
+      selectedTileId: card.selectedTileId || card.design?.tiles?.[0]?.id || null,
+      design: cleanDesign(card.design || buildStarterDesignFromCurrent(`Card ${index + 1}`)),
+    })),
+  };
+}
+
 function downloadProjectJson() {
-  const blob = new Blob([JSON.stringify(cleanDesign(state.design), null, 2)], {
+  const payload = buildProjectPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
@@ -1863,6 +2170,8 @@ function downloadProjectJson() {
 }
 
 function persistDraft() {
+  if (state.suspendDraftSync) return;
+  syncActiveCardFromState();
   state.design.updatedAt = new Date().toISOString();
 }
 
@@ -1875,60 +2184,53 @@ function cleanDesign(design) {
 }
 
 function loadDesignFromData(data, resetProjectId) {
-  const preset = data.card?.preset || "poker";
-  const presetSize = cardSizes[preset] || cardSizes.poker;
-  state.design = {
-    name: data.name || "Imported Design",
-    card: {
-      preset,
-      widthIn: Number(data.card?.widthIn || presetSize.w),
-      heightIn: Number(data.card?.heightIn || presetSize.h),
-    },
-    snapEnabled: data.snapEnabled !== false,
-    gridStepIn: clamp(Number(data.gridStepIn || 0.005), 0.005, 0.5),
-    showSafeBorder: data.showSafeBorder !== false,
-    tiles: (data.tiles || []).map((tile) => ({
-      ...createTile(tile.type || "effect"),
-      ...tile,
-      rotationDeg: normalizeRotation(tile.rotationDeg ?? 0),
-      hidden: tile.hidden === true,
-      showOutline: tile.showOutline !== false,
-      transparentBg:
-        tile.transparentBg != null
-          ? tile.transparentBg
-          : tile.type === "card-background" || tile.type === "main-image" || tile.type === "icon",
-      style: {
-        ...getDefaultTextStyle(tile.type || "effect"),
-        ...(tile.style || {}),
+  if (!data || typeof data !== "object") {
+    throw new Error("Invalid project JSON.");
+  }
+  const hasMultiCards = Array.isArray(data?.cards);
+  if (hasMultiCards) {
+    const normalizedCards = data.cards
+      .map((entry, index) => {
+        const base = entry?.design && typeof entry.design === "object" ? entry.design : entry || {};
+        const name = String(entry?.name || base.name || `Card ${index + 1}`).trim();
+        const design = normalizeDesignData(base, name || `Card ${index + 1}`);
+        design.name = name || design.name;
+        const cardId = entry?.id || uuid();
+        const selectedTileId = entry?.selectedTileId;
+        const hasSelected = design.tiles.some((tile) => tile.id === selectedTileId);
+        return {
+          id: cardId,
+          name: design.name,
+          design,
+          selectedTileId: hasSelected ? selectedTileId : design.tiles[0]?.id || null,
+        };
+      })
+      .filter(Boolean);
+
+    if (normalizedCards.length === 0) {
+      resetProject({ preserveSettings: true });
+      return;
+    }
+
+    state.cards = normalizedCards;
+    state.activeCardId =
+      normalizedCards.find((card) => card.id === data.activeCardId)?.id || normalizedCards[0].id;
+    const active = getActiveCardRecord() || normalizedCards[0];
+    state.design = cloneDesign(active.design);
+    state.selectedTileId = active.selectedTileId || state.design.tiles[0]?.id || null;
+  } else {
+    state.design = normalizeDesignData(data, data.name || "Imported Design");
+    state.selectedTileId = state.design.tiles[0]?.id || null;
+    state.activeCardId = uuid();
+    state.cards = [
+      {
+        id: state.activeCardId,
+        name: state.design.name || "Card 1",
+        design: cloneDesign(state.design),
+        selectedTileId: state.selectedTileId,
       },
-      imageFill: {
-        ...getDefaultImageFill(tile.type || "effect"),
-        ...(tile.imageFill || {}),
-      },
-      titleBanner: {
-        enabled: false,
-        mode: "color",
-        color: "#1f2430",
-        gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-        imageDataUrl: "",
-        paddingMm: 0.5,
-        ...(tile.titleBanner || {}),
-      },
-      icon: {
-        value: "1",
-        position: "overlay",
-        valueColor: "#ffffff",
-        valueSize: 60,
-        outlineColor: "#111111",
-        outlineWidth: 2,
-        offsetX: 0,
-        offsetY: 0,
-        ...(tile.icon || {}),
-      },
-    })),
-    updatedAt: data.updatedAt || new Date().toISOString(),
-  };
-  state.selectedTileId = state.design.tiles[0]?.id || null;
+    ];
+  }
   if (resetProjectId) state.projectId = null;
   syncInputsFromState();
   render();
@@ -1947,12 +2249,17 @@ function resetProject(options = {}) {
         showSafeBorder: state.design.showSafeBorder,
       }
     : {};
-  state.design = buildDefaultDesign(settings);
-  const t1 = createTile("title");
-  const t2 = createTile("main-image");
-  const t3 = createTile("effect");
-  state.design.tiles.push(t1, t2, t3);
-  state.selectedTileId = t1.id;
+  state.design = buildStarterDesignFromCurrent(settings.name || "Card 1", settings);
+  state.selectedTileId = state.design.tiles[0]?.id || null;
+  state.activeCardId = uuid();
+  state.cards = [
+    {
+      id: state.activeCardId,
+      name: state.design.name || "Card 1",
+      design: cloneDesign(state.design),
+      selectedTileId: state.selectedTileId,
+    },
+  ];
   syncInputsFromState();
   render();
   setStatus("Started a new project.");
@@ -2114,6 +2421,7 @@ function drawCutGuides(page, box) {
 }
 
 async function exportPdf() {
+  const scope = els.exportScopeSelect?.value || "active";
   const pageKey = els.pdfPageSize.value;
   const layoutKey = els.pdfLayout.value;
   const copies = clamp(Number(els.pdfCopies.value || 1), 1, 300);
@@ -2125,41 +2433,65 @@ async function exportPdf() {
 
   if (!positions.length) throw new Error("Invalid PDF layout.");
 
-  const pngData = await captureCardPngDataUrl();
-  const imageData =
-    layoutKey === "gutterfold" ? await rotateDataUrlClockwise(pngData) : pngData;
-  const pngBytes = await fetch(imageData).then((r) => r.arrayBuffer());
   const pdf = await PDFLib.PDFDocument.create();
-  const image = await pdf.embedPng(pngBytes);
-  const totalPages = Math.ceil(copies / cardsPerPage);
-
-  for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
-    const page = pdf.addPage([pageSize.w, pageSize.h]);
-    const pageBoxes = [];
-    for (let i = 0; i < cardsPerPage; i += 1) {
-      const global = pageIndex * cardsPerPage + i;
-      if (global >= copies) break;
-      const box = positions[i];
-      page.drawImage(image, {
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height,
+  if (scope === "all") {
+    const cards = await captureExportCards("all", { rotateForLayout: true, layoutKey });
+    if (!cards.length) throw new Error("No cards available for PDF export.");
+    const imageBuffers = await Promise.all(cards.map((card) => fetch(card.dataUrl).then((r) => r.arrayBuffer())));
+    const images = await Promise.all(imageBuffers.map((bytes) => pdf.embedPng(bytes)));
+    const totalPages = Math.ceil(images.length / cardsPerPage);
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+      const page = pdf.addPage([pageSize.w, pageSize.h]);
+      const pageBoxes = [];
+      for (let i = 0; i < cardsPerPage; i += 1) {
+        const global = pageIndex * cardsPerPage + i;
+        if (global >= images.length) break;
+        const box = positions[i];
+        page.drawImage(images[global], {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+        });
+        pageBoxes.push(box);
+      }
+      pageBoxes.forEach((box) => {
+        drawCutGuides(page, box);
       });
-      pageBoxes.push(box);
     }
-    pageBoxes.forEach((box) => {
-      drawCutGuides(page, box);
-    });
+  } else {
+    const cards = await captureExportCards("active", { rotateForLayout: true, layoutKey });
+    const imageData = cards[0]?.dataUrl;
+    if (!imageData) throw new Error("Unable to render active card for PDF export.");
+    const pngBytes = await fetch(imageData).then((r) => r.arrayBuffer());
+    const image = await pdf.embedPng(pngBytes);
+    const totalPages = Math.ceil(copies / cardsPerPage);
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+      const page = pdf.addPage([pageSize.w, pageSize.h]);
+      const pageBoxes = [];
+      for (let i = 0; i < cardsPerPage; i += 1) {
+        const global = pageIndex * cardsPerPage + i;
+        if (global >= copies) break;
+        const box = positions[i];
+        page.drawImage(image, {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+        });
+        pageBoxes.push(box);
+      }
+      pageBoxes.forEach((box) => {
+        drawCutGuides(page, box);
+      });
+    }
   }
 
   const bytes = await pdf.save();
   const blob = new Blob([bytes], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${safeFile(state.design.name || "card")}-${layoutKey}-${pageKey}.pdf`;
-  a.click();
+  const filenameBase = scope === "all" ? "all-cards" : safeFile(state.design.name || "card");
+  triggerDownload(url, `${filenameBase}-${layoutKey}-${pageKey}.pdf`);
   URL.revokeObjectURL(url);
 }
 

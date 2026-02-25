@@ -7,6 +7,9 @@ No build step is required. It is designed to run locally or on GitHub Pages.
 ## Current Features
 
 - Drag-and-drop tile-based card editor.
+- Multi-card session workflow:
+  - Create, duplicate, delete, and switch cards in one project session
+  - Each card keeps independent tile/content/layer edits
 - Built-in tile types:
   - Card Background Image
   - Title
@@ -56,17 +59,22 @@ No build step is required. It is designed to run locally or on GitHub Pages.
   - Max file size: 2.5 MB
   - Max dimensions: 3000x3000
 - Export options:
+  - Export scope: Active Card or All Cards in Session
   - Preview Card before export
-  - PNG (single card)
+  - PNG:
+    - Active card export
+    - All-cards export as separate PNG files
   - PDF (print-ready tiled layout)
+    - Active card (uses Cards in PDF copy count)
+    - All cards in session (each card placed once, in order)
   - US Letter or A4
   - 3x3, 2x3, or Gutterfold layouts
   - Corner cut guides drawn above card images
   - Rotation-aware text rendering in preview, PNG, and PDF
   - Export uses per-tile settings for outline/background visibility
 - Project file workflow:
-  - Save project as JSON
-  - Load project JSON
+  - Save project as JSON (includes all cards in the session)
+  - Load project JSON (supports both current multi-card and legacy single-card files)
   - Start Over reset
 - In-app onboarding:
   - Tutorial prompt with View/Skip on first load
@@ -93,12 +101,19 @@ No build step is required. It is designed to run locally or on GitHub Pages.
    - **Icon Tiles** with styled numeric values
    - **Flavor Text Tile** for supporting text
    - **Card Background Tile** with image, solid color, or gradient fill
-6. Use **Preview Card** to verify output.
-7. Export your card as:
-   - an individual **PNG**, or
-   - a tiled **print-ready PDF**
-8. Optionally:
-   - **Save JSON** to keep your project file
+6. Use the **Cards** section to:
+   - create new cards
+   - duplicate existing cards
+   - switch between cards in the same session
+7. Use **Preview Card** to verify output.
+8. Choose **Export Scope**:
+   - **Active Card** for one card, or
+   - **All Cards in Session** for batch export
+9. Export as:
+   - **PNG** (single or batch by scope), or
+   - **print-ready PDF** (single-card copies or full-session sheet export)
+10. Optionally:
+   - **Save JSON** to keep your full session project file
    - **Load JSON** to continue an in-progress project
 
 ## In-App Tutorial Walkthrough
