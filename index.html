@@ -3,40 +3,109 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f7fb" id="themeColorMeta" />
     <title>Martin's Card Prototyper</title>
+    <script>
+      (() => {
+        let savedTheme = null;
+        try {
+          savedTheme = localStorage.getItem("martins_card_prototyper.theme");
+        } catch (error) {
+          // System appearance remains available when storage is blocked.
+        }
+        const theme = savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Archivo:wght@400;600;700&family=Audiowide&family=Bangers&family=Bebas+Neue&family=Bree+Serif&family=Bungee&family=Cabin+Sketch:wght@400;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;700&family=Exo+2:wght@400;600;700&family=Fjalla+One&family=IM+Fell+English+SC&family=Inter:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Lora:wght@400;500;700&family=Luckiest+Guy&family=Manrope:wght@400;600;700;800&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700;800&family=Nunito:wght@400;600;700&family=Orbitron:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pirata+One&family=Playfair+Display:wght@500;600;700&family=Rajdhani:wght@400;600;700&family=Rye&family=Skranji:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Special+Elite&family=Teko:wght@400;600;700&family=Uncial+Antiqua&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260725-3" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="topbar-main">
-        <h1>Martin's Card Prototyper</h1>
-        <p>Design quick card prototypes and export individual card images or print-ready sheets.</p>
-      </div>
-      <div class="topbar-actions">
-        <button id="feedbackBtn" type="button">Feedback</button>
-        <button id="openTutorialBtn" type="button">Tutorial</button>
-        <button id="themeToggleBtn" type="button">Dark Mode</button>
-        <div class="menu-wrap">
-          <button id="toolsMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">Tools</button>
-          <div id="toolsMenu" class="tools-menu" hidden>
-            <a href="http://pnpfinder.com" target="_blank" rel="noopener noreferrer">PnPFinder</a>
-            <a href="https://pnptools.gonzhome.us" target="_blank" rel="noopener noreferrer">PnPTools</a>
-            <a href="https://launchpad.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Launchpad</a>
-            <a href="https://formatter.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Formatter</a>
-            <a href="https://extractor.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Extractor</a>
+    <header class="app-header">
+      <div class="header-inner">
+        <a class="brand" href="#" aria-label="Card Prototyper home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="3" width="12" height="17" rx="3" />
+              <path d="M8 7h4M8 11h4M8 15h3" stroke-linecap="round" />
+              <path d="M16 8l4-2v12l-4-2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Card Prototyper</strong>
+            <span>Build playable card ideas in minutes</span>
+          </span>
+        </a>
+
+        <div class="header-actions">
+          <button id="feedbackBtn" class="header-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M4 5.5h16v11H8l-4 3v-14z" stroke-linejoin="round" />
+            </svg>
+            <span>Feedback</span>
+          </button>
+          <button id="openTutorialBtn" class="header-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.8 9a2.3 2.3 0 1 1 3.4 2c-.8.5-1.2 1-1.2 2" stroke-linecap="round" />
+              <path d="M12 17h.01" stroke-linecap="round" />
+            </svg>
+            <span>Tutorial</span>
+          </button>
+          <div class="menu-wrap">
+            <button id="toolsMenuBtn" class="related-sites-trigger" type="button" aria-label="Open related sites" aria-haspopup="true" aria-expanded="false">
+              <svg class="related-sites-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
+              <span class="related-sites-label-full">Related Sites</span>
+              <span class="related-sites-label-short">Sites</span>
+              <svg class="related-sites-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <nav id="toolsMenu" class="tools-menu" aria-label="Related print and play sites" hidden>
+              <a href="https://gonzhome.us" target="_blank" rel="noopener noreferrer">Gonzhome</a>
+              <a href="https://pnpfinder.com" target="_blank" rel="noopener noreferrer">PnPFinder</a>
+              <a href="https://pnpdaily.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Daily</a>
+              <a href="https://launchpad.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Launchpad</a>
+              <a href="https://pnptools.gonzhome.us" target="_blank" rel="noopener noreferrer">PnPTools</a>
+              <a href="https://formatter.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Formatter</a>
+              <a href="https://extractor.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Extractor</a>
+              <a href="https://boardsplitter.gonzhome.us" target="_blank" rel="noopener noreferrer">BoardSplitter</a>
+              <a href="https://geeklist.gonzhome.us" target="_blank" rel="noopener noreferrer">Geeklist Generator</a>
+            </nav>
           </div>
+          <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Switch appearance" title="Switch appearance">
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.5" />
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3l1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3l1.42-1.42" stroke-linecap="round" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>
 
     <main class="app-shell">
       <section class="panel left-panel">
+        <div class="panel-intro">
+          <span class="eyebrow">Design workspace</span>
+          <h1>Build your card</h1>
+          <p>Arrange content, artwork, and layers, then export a playable prototype.</p>
+        </div>
         <details class="ui-section" open>
           <summary>Project</summary>
           <div class="section-body">
@@ -186,6 +255,13 @@
       </section>
 
       <section class="stage-panel">
+        <div class="stage-heading">
+          <div>
+            <span class="eyebrow">Live preview</span>
+            <h2>Card canvas</h2>
+          </div>
+          <span class="canvas-badge">Drag · resize · edit</span>
+        </div>
         <div id="cardStageWrap">
           <div id="cardStage" aria-label="Card design stage"></div>
         </div>
@@ -195,11 +271,12 @@
 
     <footer class="site-footer">
       <p>
-        Copyright 2026 by
-        <a href="mailto:help@pnpfinder.com">Martin Gonzalvez</a>
+        © 2026 Rights owned by
+        <a href="mailto:help@pnpfinder.com?subject=Card%20Prototyper%20Feedback">Martin Gonzalvez</a>.
       </p>
       <p>
-        Find this site useful? Why not
+        <span aria-hidden="true">☕</span>
+        Like this tool? Why not
         <a href="https://ko-fi.com/marting" target="_blank" rel="noopener noreferrer">buy me a coffee</a>?
       </p>
     </footer>

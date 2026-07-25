@@ -1,267 +1,62 @@
-# Prototyper — Development Guide
+# Martin's Card Prototyper — Agent Instructions
 
-Martin's Card Prototyper is a **single-page static web app** for designing tabletop card mockups and exporting print-ready sheets. No build step, no framework — vanilla HTML/CSS/JS with two CDN libraries.
+## Architecture
 
-## File Structure
+Single-page static web app. Three files, no build step:
 
-```
-prototyper/
-├── index.html   (~520 lines)  — App shell, all UI panels, modals, and CDN script imports
-├── app.js       (~2526 lines) — All application logic: state, rendering, drag/drop, export
-├── styles.css   (~933 lines) — Design tokens, layout, component styles, dark mode
-├── README.md    — User-facing documentation and quick-start guide
-└── CNAME        — Custom domain for GitHub Pages
-```
+- `index.html` — shell, all UI markup, CDN script imports (pdf-lib, html2canvas)
+- `app.js` — all logic. State lives in a global `state` object. `render()` clears and rebuilds the card stage, selection inspector, layer list, and card list.
+- `styles.css` — shared PnP-tools design tokens plus editor styles; light/dark state is mirrored on `html[data-theme]` and `body[data-theme]`
 
-## Architecture Overview
+No package manager, build step, automated tests, or CI. Runtime dependencies and Google Fonts load from CDNs, so local use still needs network access unless those resources are already cached.
 
-### Three-file, zero-dependency architecture
-
-The entire app lives in three files. There is no build system, no bundler, no framework. Two external libraries are loaded via CDN:
-
-- **pdf-lib** (unpkg) — PDF document creation and PNG embedding for print-ready exports
-- **html2canvas** (jsDelivr) — DOM-to-canvas rasterization for PNG preview/export
-
-Everything else is vanilla JavaScript with direct DOM manipulation.
-
-### State model
-
-All mutable app state lives in a single `state` object:
-
-```js
-state = {
-  projectId: null,          // JSON project file ID (null = fresh session)
-  design: {                 // Current card design (tiles, card size, settings)
-    name: "Card 1",
-    card: { preset: "poker", widthIn: 2.5, heightIn: 3.5 },
-    snapEnabled: true,
-    gridStepIn: 0.005,
-    showSafeBorder: true,
-    tiles: [...],           // Array of tile objects (see below)
-    updatedAt: "ISO string",
-  },
-  cards: [                  // Multi-card session: each card has its own design
-    { id, name, design, selectedTileId },
-  ],
-  activeCardId: "...",      // Currently active card ID
-  selectedTileId: "...",    // Currently selected tile ID (null = nothing selected)
-  liveEditable: null,       // Currently live-editing tile ID (null = none)
-  suspendDraftSync: false,  // Pause localStorage draft auto-save
-}
-```
-
-### Tile types
-
-Six tile types, each with distinct rendering and control panels:
-
-| Type | Key properties | Controls |
-|------|---------------|----------|
-| `title` | `text`, `style`, `titleBanner` | Font, size, alignment, banner mode (color/gradient/image), banner padding |
-| `effect` | `text`, `style` | Font, size, alignment, line height, letter spacing, color |
-| `flavor` | `text`, `style` | Same as effect but defaults to Cormorant Garamond |
-| `main-image` | `imageFill` (mode: image/solid/gradient, imageDataUrl) | Image upload, fill mode, gradient presets |
-| `card-background` | `imageFill` | Same as main-image, background layer |
-| `icon` | `imageFill`, `iconValue` (value, color, size, outline, nudgeX, nudgeY) | Numeric value overlay on icon image |
-
-Each tile object has: `id`, `type`, `name`, `x`, `y`, `width`, `height`, `rotationDeg`, `hidden`, `showOutline`, `transparentBg`, `style`, `imageFill`, `titleBanner`, `iconValue`, `text` (for text tiles).
-
-### Rendering pipeline
-
-1. **`render()`** — Main render function called on every state change
-2. Clears and rebuilds `#cardStage` from `state.design.tiles`
-3. Each tile becomes a DOM element with position, rotation, and content
-4. Text tiles use `contenteditable` for live editing
-5. Image tiles render uploaded images via `<img>` or CSS background
-6. Layer panel (`#layersList`) rebuilds from `state.design.tiles`
-
-### Drag-and-drop system
-
-Tiles on `#cardStage` support:
-- **Drag to move** — mousedown on non-text tile body, track mouse movement, update `x`/`y` in state
-- **Resize** — drag the resize handle (bottom-right corner) to adjust `width`/`height`
-- **Snap-to-grid** — when enabled, positions snap to `gridStepIn` increments
-- **Safe border** — 0.125" border guardrails visible during editing (toggleable)
-- **Rotation** — 0°, 90°, 180°, 270° via dropdown (applies CSS transform)
-
-### Multi-card session
-
-- Cards are stored in `state.cards[]`, each with independent design
-- `state.activeCardId` tracks which card is currently being edited
-- Switching cards swaps `state.design` from the card's design clone
-- Duplicate creates a new card with a copy of the current card's design
-- Delete removes a card from the array (minimum 1 card always)
-
-### Export system
-
-**PNG export:**
-- Uses `html2canvas` to rasterize `#cardStage`
-- Scales up by 2-4x for 300 DPI output
-- Hides UI chrome (safe border, selection handles, delete buttons) via `.export-mode` class
-- Active card: single PNG download
-- All cards: separate PNG file per card, triggered sequentially
-
-**PDF export:**
-- Uses `pdf-lib` to create print-ready sheets
-- Layouts: 3x3 grid, 2x3 grid, Gutterfold (rotated for booklet)
-- Pages: US Letter or A4
-- Copies: configurable (1-300) for single-card mode
-- All-cards mode: each card placed once across pages
-- Corner cut guides drawn as lines above each card position
-- Cards are rotated clockwise for Gutterfold layout
-
-**Preview:**
-- Renders the current card via `html2canvas` into a modal
-- Shows a scaled preview before export
-- Download button saves the preview PNG
-
-### Project file workflow
-
-- **Save** — Serializes full `state` to JSON, triggers download
-- **Load** — Reads JSON file, normalizes data (handles legacy single-card format), rebuilds state
-- **Start Over** — Resets to fresh project, optionally preserving card size/grid settings
-- **Draft auto-save** — Saves current state to `localStorage` on every change, restores on page load
-
-### UI panels
-
-**Left panel** (collapsible sections):
-- **Project** — Name, card size preset, custom dimensions, snap/grid/safe border toggles, grid step
-- **Cards** — Create, duplicate, delete, switch cards; card count display
-- **Tiles** — Tile palette to add new tiles (drag or click to add)
-- **Layers** — Layer list with reorder (up/down), visibility toggle, background transparency toggle
-- **Export** — Scope selector, PNG/PDF export buttons, PDF page size/layout/copies controls
-- **Project** — Save JSON, Load JSON, Start Over buttons
-
-**Floating palette** (appears when a tile is selected):
-- **Basic mode** — Tile name, transparent bg, show outline, position/size inputs, rotation, delete
-- **Advanced mode** — Text controls (font, size, alignment, line height, letter spacing, color, bg color), title banner controls, icon value controls
-
-**Top bar:**
-- Project name display
-- Feedback button (mailto link)
-- Tutorial button
-- Theme toggle (light/dark)
-- Tools menu (links to companion PnP sites)
-
-**Modals:**
-- Tutorial prompt (View/Skip on first load)
-- Tutorial guide (multi-step walkthrough with Back/Next/Exit)
-- Preview card (shows rendered card, download button)
-
-### Constants
-
-```js
-MAX_IMAGE_BYTES = 2.5 MB
-MAX_IMAGE_DIMENSION = 3000px
-SAFE_BORDER_IN = 0.125"
-DPI_EXPORT = 300
-POINTS_PER_IN = 72
-```
-
-### Card sizes
-
-- **Poker:** 2.5" x 3.5" (default)
-- **Tarot:** 2.75" x 4.75"
-- **Mini:** 1.75" x 2.5"
-- **Custom:** user-defined (1-10" width, 1-14" height)
-
-### Page sizes
-
-- **US Letter:** 8.5" x 11"
-- **A4:** 8.27" x 11.69"
-
-### Typography
-
-38 Google Fonts loaded via single stylesheet link. Default presets:
-- Title: Fjalla One, 82px, centered, all caps
-- Effect: Fjalla One, 42px
-- Flavor: Cormorant Garamond, 42px
-
-## Key Functions (app.js)
-
-| Function | Purpose |
-|----------|---------|
-| `bootstrap()` | Entry point — loads draft, sets up event bindings, theme, tooltips |
-| `render()` | Rebuilds card stage from `state.design.tiles` |
-| `createTile(type)` | Creates a new tile object with defaults |
-| `getDefaultTextStyle(type)` | Returns default font/size for tile type |
-| `getDefaultImageFill(type)` | Returns default fill for image tile type |
-| `activateCard(cardId)` | Switches active card, updates `state.design` |
-| `duplicateCard()` | Creates new card with copied design |
-| `deleteCard(cardId)` | Removes card from session |
-| `addTile(type)` | Creates and adds a new tile to current card |
-| `selectTile(tileId)` | Selects tile, shows floating palette |
-| `deleteTile(tileId)` | Removes tile from current card |
-| `captureCardPngDataUrl()` | Rasterizes card stage via html2canvas |
-| `captureExportCards(scope, options)` | Captures one or all cards for export |
-| `exportPng()` | Triggers PNG download |
-| `exportPdf()` | Creates and downloads print-ready PDF |
-| `saveProject()` | Serializes state to JSON file |
-| `loadProject(file)` | Reads JSON, normalizes, rebuilds state |
-| `resetProject(options)` | Resets to fresh project |
-| `syncInputsFromState()` | Syncs DOM inputs to current state |
-| `syncStateFromInputs()` | Syncs state from DOM inputs |
-| `normalizeDesignData(data)` | Normalizes imported JSON (handles legacy format) |
-| `buildStarterDesignFromCurrent(name, settings)` | Creates default starter design |
-| `uuid()` | Generates unique IDs for cards and tiles |
-| `clamp(value, min, max)` | Utility for value clamping |
-| `normalizeRotation(deg)` | Normalizes rotation to 0/90/180/270 |
-| `rotateDataUrlClockwise(dataUrl)` | Rotates PNG data URL 90° clockwise |
-| `getLayoutConfig(layoutKey)` | Returns layout dimensions for PDF export |
-| `getPositions(layout, pageW, pageH, cardW, cardH)` | Calculates card positions on page |
-| `drawCutGuides(page, box)` | Draws corner cut guides on PDF page |
-| `safeFile(name)` | Sanitizes filename for downloads |
-| `validateImageUpload(file)` | Validates PNG/JPG: type, size, dimensions |
-| `triggerDownload(url, filename)` | Triggers browser file download |
-
-## Styling Conventions (styles.css)
-
-- CSS custom properties for theming (light/dark via `body[data-theme="dark"]`)
-- Light theme: warm paper-like background (`#f2eee6`) with radial gradient highlights
-- Dark theme: cool slate background (`#232932`)
-- Accent color: blue (`#4a9dff` / `#6eb3ff`)
-- Danger color: red (`#d73a49`)
-- Border radius: 14px for panels, 12px for modals
-- Panels use semi-transparent backgrounds with backdrop blur
-- Card stage uses aspect-ratio for card proportions
-- Tiles use absolute positioning within the card stage
-- Resize handles: gradient blue, bottom-right corner
-- Export mode hides UI chrome via `.export-mode` class
-- Tooltips: custom CSS-based tooltips on interactive elements
-- Responsive: adapts to different viewport sizes
-
-## Running Locally
+## Running
 
 ```bash
 python3 -m http.server 8080
-# Then open http://localhost:8080
 ```
 
-No build step required. Just serve the directory and open in a browser.
+Open `http://localhost:8080`. No dev server, no hot reload.
 
-## Deployment
+## Key patterns in app.js
 
-- **GitHub Pages** — Push to repo, enable Pages from settings
-- **Custom domain** — `CNAME` file is included
-- **Cloudflare Web Analytics** — Beacon script included in `index.html` with token `e42a535ee3274b5daaa809c5231225df`
+- **State**: single `state` object with `cards[]`, `activeCardId`, `design`, `selectedTileId`. All cards in a session are independent.
+- **Active card**: `state.design` is the working copy of the active card. `syncActiveCardFromState()` copies it back into the matching `cards[]` record; `activateCard()` saves the old working copy before loading another.
+- **Naming**: despite the `#projectName` label, `state.design.name` names the active card and supplies its export filename. The version 2 project JSON has no separate project-level name.
+- **Render**: `render()` is the single source of truth — it clears `#cardStage`, re-renders visible tiles and supporting panels, syncs the active card record, and updates `updatedAt`. Call it after state mutations that affect rendered UI.
+- **Tile types**: `title`, `effect`, `flavor`, `main-image`, `card-background`, `icon`. Each has a preset size/position from `createTile()` and default style from `getDefaultTextStyle()`.
+- **Layer order**: `design.tiles` renders from back to front. The Layers panel displays the same array in reverse, so its first item is visually on top.
+- **Units**: internal state uses inches. Display uses pixels via `toPixels()`/`toInches()` which derive scale from `#cardStage.clientWidth`.
+- **Drag/resize**: `beginDrag()` → `onPointerMove()` → `onPointerUp()`. Snap uses `state.design.gridStepIn`.
+- **Inspector**: selecting a tile opens the floating palette. Title and icon tiles expose a basic/advanced toggle; other tile types show their applicable controls directly.
+- **Application frame**: the header and design tokens intentionally match BoardSplitter, Card Formatter, and Card Extractor. Preserve the shared blue/violet palette, translucent surfaces, branded header, Related Sites menu, and responsive behavior when changing UI.
+- **Theme boot**: the inline script in `index.html` selects the saved or system theme before CSS loads to prevent a flash. `applyTheme()` mirrors the value to both the root element and body, updates the browser theme-color meta tag, and leaves the SVG toggle icons intact.
+- **Workspace layout**: desktop uses a left controls panel, center stage, and fixed right inspector. At `1180px` and below the layout becomes one column and the inspector docks along the viewport bottom.
+- **Canvas sizing**: `.stage-panel` must keep an explicit `grid-template-columns: minmax(0, 1fr)` so the grid does not collapse to max-content. `#cardStageWrap` uses a definite responsive width (`500–640px` on desktop, with smaller viewport-based limits at the responsive breakpoints). Avoid percentage-only sizing on this grid item; it previously collapsed the card to an illegible width.
+- **Export**: PNG via html2canvas (screenshot of `#cardStage`). PDF via pdf-lib (tiled print sheets with corner cut guides). All-card PNG queues one browser download per card; all-card PDF places each card once and ignores `#pdfCopies`.
+- **Project files**: `buildProjectPayload()` writes version 2 multi-card JSON. `loadDesignFromData()` also accepts the legacy single-design shape. Uploaded images are stored inline as data URLs.
+- **Persistence**: projects are not auto-saved or restored. `persistDraft()` currently only syncs in-memory state, and `loadDraft()` always returns `false`. Durable saves require JSON download/upload.
+- **Local storage**: only theme (`martins_card_prototyper.theme`) and tutorial dismissal (`martins_card_prototyper.tutorial_seen`) are persisted.
+- **Reset**: `Start Over` creates one starter card while preserving the active card size, snap, grid-step, and safe-border settings.
 
-## Companion Sites
+## Gotchas
 
-The Tools menu links to:
-- PnPFinder: http://pnpfinder.com
-- PnPTools: https://pnptools.gonzhome.us
-- PnP Launchpad: https://launchpad.gonzhome.us
-- Card Formatter: https://formatter.gonzhome.us
-- Card Extractor: https://extractor.gonzhome.us
+- **No `npm`/`yarn`** — editing `index.html` to add scripts means managing CDN versions manually.
+- **CSS cache busting**: `index.html` loads `styles.css` with a version query. Increment it when a deployed CSS change must invalidate browser/CDN caches.
+- **`#cardStage` is the export canvas** — anything with `.export-hide` class is hidden during PNG/PDF export.
+- **Safe border**: `SAFE_BORDER_IN = 0.125` inches. Card-background tiles are exempt from safe border constraints.
+- **Image upload limits**: 2.5 MB max, 3000x3000 max dimensions (constants at top of `app.js`).
+- **Image formats**: validation accepts PNG and JPEG MIME types only. The same validator is used for tile images and title-banner images.
+- **Fonts**: loaded via Google Fonts `<link>` in `index.html` head. Adding new fonts requires editing that link.
+- **Cloudflare analytics** token is embedded in `index.html` — do not expose or rotate without updating.
+- **Manual verification**: use `node --check app.js` for syntax, then exercise affected behavior through the local HTTP server in a browser.
 
-## Important Implementation Notes
+## File structure
 
-1. **No framework** — Direct DOM manipulation throughout. No virtual DOM, no reactivity system.
-2. **localStorage draft** — Auto-saves state on every change, restores on page load. Key: `martins_card_prototyper.draft`.
-3. **Tutorial persistence** — Tutorial seen flag stored in localStorage: `martins_card_prototyper.tutorial_seen`.
-4. **Theme persistence** — Theme preference stored in localStorage: `martins_card_prototyper.theme`.
-5. **Legacy format support** — `normalizeDesignData()` handles both current multi-card JSON and legacy single-card JSON files.
-6. **Image upload validation** — Strict limits: PNG/JPG only, max 2.5 MB, max 3000x3000px.
-7. **PDF rotation** — Gutterfold layout requires clockwise rotation of card images for proper booklet orientation.
-8. **html2canvas config** — `ignoreElements` hides UI chrome during export; `backgroundColor: null` preserves transparency.
-9. **Safe border** — 0.125" inset from card edges, visible during editing, hidden during export.
-10. **Snap-to-grid** — Default step is 0.005" (adjustable 0.005"-0.5"), can be disabled for freeform placement.
+```
+index.html    — markup + CDN imports
+app.js        — all application logic
+styles.css    — all styles
+test card/    — sample assets (not part of the app)
+CNAME        — GitHub Pages custom domain
+```

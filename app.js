@@ -269,20 +269,30 @@ function setStatus(text) {
 
 function applyTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  document.documentElement.style.colorScheme = next;
   document.body.setAttribute("data-theme", next);
   if (els.themeToggleBtn) {
-    els.themeToggleBtn.textContent = next === "dark" ? "Light Mode" : "Dark Mode";
-    els.themeToggleBtn.title = next === "dark" ? "Switch to light mode." : "Switch to dark mode.";
+    const label = next === "dark" ? "Switch to light mode" : "Switch to dark mode";
+    els.themeToggleBtn.setAttribute("aria-label", label);
+    els.themeToggleBtn.title = label;
   }
+  const themeMeta = document.querySelector("#themeColorMeta");
+  if (themeMeta) themeMeta.setAttribute("content", next === "dark" ? "#090b10" : "#f4f7fb");
 }
 
 function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
+  let saved = null;
+  try {
+    saved = localStorage.getItem(THEME_KEY);
+  } catch (error) {
+    // Use the preselected system theme when storage is unavailable.
+  }
   if (saved === "dark" || saved === "light") {
     applyTheme(saved);
     return;
   }
-  applyTheme("light");
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 }
 
 function applyTooltips() {
@@ -1426,11 +1436,15 @@ function bindEvents() {
     const current = document.body.getAttribute("data-theme") === "dark" ? "dark" : "light";
     const next = current === "dark" ? "light" : "dark";
     applyTheme(next);
-    localStorage.setItem(THEME_KEY, next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (error) {
+      // The selected theme remains active for this session.
+    }
   });
 
   els.feedbackBtn?.addEventListener("click", () => {
-    window.location.href = "mailto:help@pnpfinder.com?subject=Card%20Protyper%20Feedback";
+    window.location.href = "mailto:help@pnpfinder.com?subject=Card%20Prototyper%20Feedback";
   });
 
   els.openTutorialBtn?.addEventListener("click", () => {
