@@ -2,61 +2,89 @@
 
 ## Architecture
 
-Single-page static web app. Three files, no build step:
+Static browser app with no package manager or build step:
 
-- `index.html` — shell, all UI markup, CDN script imports (pdf-lib, html2canvas)
-- `app.js` — all logic. State lives in a global `state` object. `render()` clears and rebuilds the card stage, selection inspector, layer list, and card list.
-- `styles.css` — shared PnP-tools design tokens plus editor styles; light/dark state is mirrored on `html[data-theme]` and `body[data-theme]`
+- `index.html` — shell, editor markup, CDN imports, dialogs, and tutorial layer.
+- `app.js` — browser state, rendering, placement/transforms, inspector, assets, persistence, tutorial, and exports.
+- `editor-core.js` — pure templates, migration, geometry, snapping helpers, and history shared by browser code and Node tests.
+- `styles.css` — shared PnP-tools visual system and editor/canvas styles.
+- `icon-manifest.js` — generated 327-entry Fractal Symbols metadata file.
+- `scripts/build-icon-manifest.mjs` — regenerates the icon manifest from the bundled asset folders.
+- `tests/editor-core.test.js` — dependency-free Node checks.
 
-No package manager, build step, automated tests, or CI. Runtime dependencies and Google Fonts load from CDNs, so local use still needs network access unless those resources are already cached.
+Runtime dependencies and Google Fonts load from CDNs. Local browser use normally needs network access for those resources.
 
-## Running
+## Running and verification
 
 ```bash
 python3 -m http.server 8080
+node --check app.js
+node --check editor-core.js
+node --test tests/*.test.js
 ```
 
-Open `http://localhost:8080`. No dev server, no hot reload.
+Open `http://localhost:8080`. There is no hot reload.
 
-## Key patterns in app.js
+## State model
 
-- **State**: single `state` object with `cards[]`, `activeCardId`, `design`, `selectedTileId`. All cards in a session are independent.
-- **Active card**: `state.design` is the working copy of the active card. `syncActiveCardFromState()` copies it back into the matching `cards[]` record; `activateCard()` saves the old working copy before loading another.
-- **Naming**: despite the `#projectName` label, `state.design.name` names the active card and supplies its export filename. The version 2 project JSON has no separate project-level name.
-- **Render**: `render()` is the single source of truth — it clears `#cardStage`, re-renders visible tiles and supporting panels, syncs the active card record, and updates `updatedAt`. Call it after state mutations that affect rendered UI.
-- **Tile types**: `title`, `effect`, `flavor`, `main-image`, `card-background`, `icon`. Each has a preset size/position from `createTile()` and default style from `getDefaultTextStyle()`.
-- **Layer order**: `design.tiles` renders from back to front. The Layers panel displays the same array in reverse, so its first item is visually on top.
-- **Units**: internal state uses inches. Display uses pixels via `toPixels()`/`toInches()` which derive scale from `#cardStage.clientWidth`.
-- **Drag/resize**: `beginDrag()` → `onPointerMove()` → `onPointerUp()`. Snap uses `state.design.gridStepIn`.
-- **Inspector**: selecting a tile opens the floating palette. Title and icon tiles expose a basic/advanced toggle; other tile types show their applicable controls directly.
-- **Application frame**: the header and design tokens intentionally match BoardSplitter, Card Formatter, and Card Extractor. Preserve the shared blue/violet palette, translucent surfaces, branded header, Related Sites menu, and responsive behavior when changing UI.
-- **Theme boot**: the inline script in `index.html` selects the saved or system theme before CSS loads to prevent a flash. `applyTheme()` mirrors the value to both the root element and body, updates the browser theme-color meta tag, and leaves the SVG toggle icons intact.
-- **Workspace layout**: desktop uses a left controls panel, center stage, and fixed right inspector. At `1180px` and below the layout becomes one column and the inspector docks along the viewport bottom.
-- **Canvas sizing**: `.stage-panel` must keep an explicit `grid-template-columns: minmax(0, 1fr)` so the grid does not collapse to max-content. `#cardStageWrap` uses a definite responsive width (`500–640px` on desktop, with smaller viewport-based limits at the responsive breakpoints). Avoid percentage-only sizing on this grid item; it previously collapsed the card to an illegible width.
-- **Export**: PNG via html2canvas (screenshot of `#cardStage`). PDF via pdf-lib (tiled print sheets with corner cut guides). All-card PNG queues one browser download per card; all-card PDF places each card once and ignores `#pdfCopies`.
-- **Project files**: `buildProjectPayload()` writes version 2 multi-card JSON. `loadDesignFromData()` also accepts the legacy single-design shape. Uploaded images are stored inline as data URLs.
-- **Persistence**: projects are not auto-saved or restored. `persistDraft()` currently only syncs in-memory state, and `loadDraft()` always returns `false`. Durable saves require JSON download/upload.
-- **Local storage**: only theme (`martins_card_prototyper.theme`) and tutorial dismissal (`martins_card_prototyper.tutorial_seen`) are persisted.
-- **Reset**: `Start Over` creates one starter card while preserving the active card size, snap, grid-step, and safe-border settings.
+- `state.cards[]` stores independent card records.
+- `state.design` is the working copy of the active card.
+- `state.activeCardId` identifies the active record.
+- `state.selectedTileId` identifies the selected element.
+- `state.history` stores bounded command snapshots for undo/redo.
+- `syncActive()` copies the working design back into its card record.
+- Mutations should go through `mutate()` so rendering, history, and draft scheduling stay consistent.
 
-## Gotchas
+The editor uses inches for design geometry. Screen positions are converted through the rendered card width. New typography uses physical `fontSizePt`; legacy pixel font sizes are migrated by `editor-core.js`.
 
-- **No `npm`/`yarn`** — editing `index.html` to add scripts means managing CDN versions manually.
-- **CSS cache busting**: `index.html` loads `styles.css` with a version query. Increment it when a deployed CSS change must invalidate browser/CDN caches.
-- **`#cardStage` is the export canvas** — anything with `.export-hide` class is hidden during PNG/PDF export.
-- **Safe border**: `SAFE_BORDER_IN = 0.125` inches. Card-background tiles are exempt from safe border constraints.
-- **Image upload limits**: 2.5 MB max, 3000x3000 max dimensions (constants at top of `app.js`).
-- **Image formats**: validation accepts PNG and JPEG MIME types only. The same validator is used for tile images and title-banner images.
-- **Fonts**: loaded via Google Fonts `<link>` in `index.html` head. Adding new fonts requires editing that link.
-- **Cloudflare analytics** token is embedded in `index.html` — do not expose or rotate without updating.
-- **Manual verification**: use `node --check app.js` for syntax, then exercise affected behavior through the local HTTP server in a browser.
+## Interaction invariants
 
-## File structure
+- Add is a click-or-drag placement workflow. Escape cancels placement.
+- Single-click selects/moves. Double-click enters text editing. Escape or blur commits text.
+- Pointer transforms update the current DOM element during the gesture and commit one history command on pointer-up.
+- Resize handles support Shift aspect-ratio locking. Rotation supports free degrees, Shift 15° snapping, and strong cardinal snapping.
+- Smart guides use the printable safe border, card center, and nearby visible elements.
+- Selection overlays, handles, guides, and safe-area helpers must never appear in PNG/PDF output.
+- Background elements fill the card and stay at the back of the layer stack.
 
+## Templates and components
+
+`PrototyperCore.makeTemplate()` defines Ability, Character, Item, and Blank layouts. Components are Background, Title, Rules, Flavor, Artwork, and Icon/value. Keep new defaults attractive at the physical card scale and prefer contextual presets over exposing every setting immediately.
+
+## Assets and licensing
+
+Fractal Symbols are bundled under `Fractal-Symbols-Complete-Pack/` with selected legacy-only assets under `FractalSymbols Icons Set/`. Regenerate `icon-manifest.js` with:
+
+```bash
+node scripts/build-icon-manifest.mjs
 ```
-index.html    — markup + CDN imports
-app.js        — all application logic
-styles.css    — all styles
-test card/    — sample assets (not part of the app)
-CNAME        — GitHub Pages custom domain
-```
+
+Selected SVGs are embedded as data URLs and carry `sourceAsset` metadata. Fractal Symbols are CC BY 4.0. Keep the in-app license dialog, suggested attribution, footer attribution for relevant PDF sheets, and source links intact.
+
+Uploaded images remain PNG/JPG only, max 2.5 MB and 3000 × 3000 pixels.
+
+## Persistence and project compatibility
+
+New JSON is version 3 with the existing multi-card structure. Loaders must continue accepting version-2 multi-card projects and legacy single-design files. Do not serialize undo history.
+
+IndexedDB stores one debounced recoverable draft. JSON Save/Load is still the portable persistence path. Local storage is reserved for theme and tutorial preference keys.
+
+## Export
+
+PNG uses html2canvas on `#card-stage`. PDF uses pdf-lib with US Letter/A4, 3×3, 3×2, and Gutterfold layouts plus corner cut guides. All-card PNG exports one file per card; all-card PDF places each card once. PDF sheets containing Fractal artwork include the required attribution line.
+
+## UI system
+
+Preserve the shared PnP-tools blue/violet palette, translucent surfaces, branded sticky header, Related Sites menu, light/dark theme boot, responsive behavior, focus styles, and reduced-motion support. Increment the `styles.css?v=...` query in `index.html` when deployed CSS changes need cache invalidation.
+
+## Manual checks
+
+Exercise placement, move, resize, rotation, snapping, keyboard nudging, double-click text editing, style presets, library search/category selection, PNG/JPG upload, template creation, card switching, undo/redo, IndexedDB restore/discard, JSON migration/round trip, PNG/PDF export, attribution, theme switching, responsive layouts, and tutorial navigation.
+
+## Registry & provenance rule (portfolio-wide)
+
+Personal project — completely separate from Apple work.
+
+- `.npmrc` pins `registry=https://registry.npmjs.org`. Never let Apple's internal npm mirror (`npm.apple.com`, `artifacts.apple.com/artifactory/...`) end up in `package-lock.json`; GitHub Actions can't reach it and CI fails with `ENOTFOUND`.
+- Audit before pushing: `../scripts/check-registry.sh` (add `--fix` to normalize).
+- No work credentials, internal hostnames, proprietary assets, or confidential material in this repo.
