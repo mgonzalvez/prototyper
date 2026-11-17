@@ -1,2540 +1,554 @@
-/* global PDFLib, html2canvas */
-
-const MAX_IMAGE_BYTES = 2.5 * 1024 * 1024;
-const MAX_IMAGE_DIMENSION = 3000;
-const SAFE_BORDER_IN = 0.125;
-const DPI_EXPORT = 300;
-const POINTS_PER_IN = 72;
-const TUTORIAL_SEEN_KEY = "martins_card_prototyper.tutorial_seen";
-const THEME_KEY = "martins_card_prototyper.theme";
-
-const cardSizes = {
-  poker: { w: 2.5, h: 3.5 },
-  tarot: { w: 2.75, h: 4.75 },
-  mini: { w: 1.75, h: 2.5 },
-};
-
-const pageSizes = {
-  letter: { w: 8.5, h: 11 },
-  a4: { w: 8.27, h: 11.69 },
-};
-
-const els = {
-  projectName: document.querySelector("#projectName"),
-  cardSizeSelect: document.querySelector("#cardSizeSelect"),
-  customSizeWrap: document.querySelector("#customSizeWrap"),
-  customWidth: document.querySelector("#customWidth"),
-  customHeight: document.querySelector("#customHeight"),
-  newCardBtn: document.querySelector("#newCardBtn"),
-  duplicateCardBtn: document.querySelector("#duplicateCardBtn"),
-  deleteCardBtn: document.querySelector("#deleteCardBtn"),
-  cardsCountText: document.querySelector("#cardsCountText"),
-  cardsList: document.querySelector("#cardsList"),
-  snapToggle: document.querySelector("#snapToggle"),
-  gridStepInput: document.querySelector("#gridStepInput"),
-  showSafeBorder: document.querySelector("#showSafeBorder"),
-  feedbackBtn: document.querySelector("#feedbackBtn"),
-  toolsMenuBtn: document.querySelector("#toolsMenuBtn"),
-  toolsMenu: document.querySelector("#toolsMenu"),
-  themeToggleBtn: document.querySelector("#themeToggleBtn"),
-  openTutorialBtn: document.querySelector("#openTutorialBtn"),
-  tutorialModal: document.querySelector("#tutorialModal"),
-  tutorialChoiceRow: document.querySelector("#tutorialChoiceRow"),
-  tutorialViewBtn: document.querySelector("#tutorialViewBtn"),
-  tutorialSkipBtn: document.querySelector("#tutorialSkipBtn"),
-  tutorialGuide: document.querySelector("#tutorialGuide"),
-  tutorialGuideStep: document.querySelector("#tutorialGuideStep"),
-  tutorialGuideText: document.querySelector("#tutorialGuideText"),
-  tutorialPrevBtn: document.querySelector("#tutorialPrevBtn"),
-  tutorialNextBtn: document.querySelector("#tutorialNextBtn"),
-  tutorialGuideSkipBtn: document.querySelector("#tutorialGuideSkipBtn"),
-  tilePalette: document.querySelector("#tilePalette"),
-  layersList: document.querySelector("#layersList"),
-  saveProjectBtn: document.querySelector("#saveProjectBtn"),
-  loadProjectBtn: document.querySelector("#loadProjectBtn"),
-  projectFileInput: document.querySelector("#projectFileInput"),
-  resetProjectBtn: document.querySelector("#resetProjectBtn"),
-  previewCardBtn: document.querySelector("#previewCardBtn"),
-  exportScopeSelect: document.querySelector("#exportScopeSelect"),
-  exportPngBtn: document.querySelector("#exportPngBtn"),
-  pdfPageSize: document.querySelector("#pdfPageSize"),
-  pdfLayout: document.querySelector("#pdfLayout"),
-  pdfCopies: document.querySelector("#pdfCopies"),
-  exportPdfBtn: document.querySelector("#exportPdfBtn"),
-  previewModal: document.querySelector("#previewModal"),
-  previewImage: document.querySelector("#previewImage"),
-  previewDownloadBtn: document.querySelector("#previewDownloadBtn"),
-  previewCloseBtn: document.querySelector("#previewCloseBtn"),
-  statusText: document.querySelector("#statusText"),
-  cardStageWrap: document.querySelector("#cardStageWrap"),
-  cardStage: document.querySelector("#cardStage"),
-  floatingPalette: document.querySelector("#floatingPalette"),
-  inspectorModeRow: document.querySelector("#inspectorModeRow"),
-  inspectorModeBtn: document.querySelector("#inspectorModeBtn"),
-  tileControls: document.querySelector("#tileControls"),
-  textControlsWrap: document.querySelector("#textControlsWrap"),
-  tileNameInput: document.querySelector("#tileNameInput"),
-  tileTransparentBgInput: document.querySelector("#tileTransparentBgInput"),
-  tileShowOutlineInput: document.querySelector("#tileShowOutlineInput"),
-  tileXInput: document.querySelector("#tileXInput"),
-  tileYInput: document.querySelector("#tileYInput"),
-  tileWInput: document.querySelector("#tileWInput"),
-  tileHInput: document.querySelector("#tileHInput"),
-  tileRotationSelect: document.querySelector("#tileRotationSelect"),
-  deleteTileBtn: document.querySelector("#deleteTileBtn"),
-  fontFamilySelect: document.querySelector("#fontFamilySelect"),
-  fontSizeInput: document.querySelector("#fontSizeInput"),
-  lineHeightInput: document.querySelector("#lineHeightInput"),
-  textAlignSelect: document.querySelector("#textAlignSelect"),
-  textFlowModeSelect: document.querySelector("#textFlowModeSelect"),
-  textVAlignSelect: document.querySelector("#textVAlignSelect"),
-  letterSpacingInput: document.querySelector("#letterSpacingInput"),
-  textColorInput: document.querySelector("#textColorInput"),
-  bgColorInput: document.querySelector("#bgColorInput"),
-  titleControls: document.querySelector("#titleControls"),
-  titleBannerEnabled: document.querySelector("#titleBannerEnabled"),
-  titleBannerMode: document.querySelector("#titleBannerMode"),
-  titleBannerColorRow: document.querySelector("#titleBannerColorRow"),
-  titleBannerColor: document.querySelector("#titleBannerColor"),
-  titleBannerGradientRow: document.querySelector("#titleBannerGradientRow"),
-  titleBannerGradient: document.querySelector("#titleBannerGradient"),
-  titleBannerImageRow: document.querySelector("#titleBannerImageRow"),
-  titleBannerUploadBtn: document.querySelector("#titleBannerUploadBtn"),
-  titleBannerFileInput: document.querySelector("#titleBannerFileInput"),
-  titleBannerPaddingMm: document.querySelector("#titleBannerPaddingMm"),
-  imageControls: document.querySelector("#imageControls"),
-  imageFillMode: document.querySelector("#imageFillMode"),
-  imageFillColorRow: document.querySelector("#imageFillColorRow"),
-  imageFillColor: document.querySelector("#imageFillColor"),
-  imageFillGradientRow: document.querySelector("#imageFillGradientRow"),
-  imageFillGradient: document.querySelector("#imageFillGradient"),
-  uploadImageBtn: document.querySelector("#uploadImageBtn"),
-  imageFileInput: document.querySelector("#imageFileInput"),
-  iconControls: document.querySelector("#iconControls"),
-  iconValueInput: document.querySelector("#iconValueInput"),
-  iconValueColor: document.querySelector("#iconValueColor"),
-  iconValueSize: document.querySelector("#iconValueSize"),
-  iconOutlineColor: document.querySelector("#iconOutlineColor"),
-  iconOutlineWidth: document.querySelector("#iconOutlineWidth"),
-  iconOffsetX: document.querySelector("#iconOffsetX"),
-  iconOffsetY: document.querySelector("#iconOffsetY"),
-  toolbarButtons: [...document.querySelectorAll(".toolbar button")],
-};
-
-const state = {
-  projectId: null,
-  activeCardId: null,
-  cards: [],
-  selectedTileId: null,
-  dragTileType: null,
-  liveEditable: null,
-  dragAction: null,
-  tutorial: {
-    active: false,
-    index: 0,
-    highlightedSelector: "",
-  },
-  inspector: {
-    advanced: false,
-  },
-  suspendDraftSync: false,
-  design: {
-    name: "Untitled Design",
-    card: { preset: "poker", widthIn: 2.5, heightIn: 3.5 },
-    snapEnabled: true,
-    gridStepIn: 0.005,
-    showSafeBorder: true,
-    tiles: [],
-    updatedAt: new Date().toISOString(),
-  },
-};
-
-function cloneDesign(design) {
-  return cleanDesign(design);
-}
-
-function getActiveCardRecord() {
-  return state.cards.find((card) => card.id === state.activeCardId) || null;
-}
-
-function getCardDisplayName(card, index) {
-  const fallback = `Card ${index + 1}`;
-  return (card?.name || "").trim() || fallback;
-}
-
-function syncActiveCardFromState() {
-  const active = getActiveCardRecord();
-  if (!active) return;
-  active.name = state.design.name || active.name;
-  active.design = cloneDesign(state.design);
-  active.selectedTileId = state.selectedTileId;
-}
-
-function activateCard(cardId) {
-  const next = state.cards.find((card) => card.id === cardId);
-  if (!next) return;
-  syncActiveCardFromState();
-  state.activeCardId = next.id;
-  state.design = cloneDesign(next.design);
-  const selectedExists = state.design.tiles.some((tile) => tile.id === next.selectedTileId);
-  state.selectedTileId = selectedExists ? next.selectedTileId : state.design.tiles[0]?.id || null;
-  state.liveEditable = null;
-  syncInputsFromState();
-  render();
-}
-
-function updateCardSessionActions() {
-  if (!els.deleteCardBtn || !els.duplicateCardBtn) return;
-  const hasCards = state.cards.length > 0;
-  els.duplicateCardBtn.disabled = !hasCards;
-  els.deleteCardBtn.disabled = state.cards.length <= 1;
-}
-
-function renderCardsPanel() {
-  if (!els.cardsList) return;
-  els.cardsList.innerHTML = "";
-  state.cards.forEach((card, index) => {
-    const li = document.createElement("li");
-    li.className = "card-item";
-    if (card.id === state.activeCardId) li.classList.add("active");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = getCardDisplayName(card, index);
-    btn.title = "Switch to this card";
-    btn.addEventListener("click", () => {
-      activateCard(card.id);
-    });
-    li.appendChild(btn);
-    els.cardsList.appendChild(li);
-  });
-  if (els.cardsCountText) {
-    const count = state.cards.length;
-    els.cardsCountText.textContent = count === 1 ? "1 card in session." : `${count} cards in session.`;
-  }
-  updateCardSessionActions();
-}
-
-function buildStarterDesignFromCurrent(name, baseSettings = {}) {
-  const starter = buildDefaultDesign({
-    name: name || "Untitled Design",
-    card: { ...(baseSettings.card || state.design.card) },
-    snapEnabled:
-      baseSettings.snapEnabled != null ? baseSettings.snapEnabled : state.design.snapEnabled,
-    gridStepIn:
-      baseSettings.gridStepIn != null ? baseSettings.gridStepIn : state.design.gridStepIn,
-    showSafeBorder:
-      baseSettings.showSafeBorder != null ? baseSettings.showSafeBorder : state.design.showSafeBorder,
-  });
-  const prevDesign = state.design;
-  state.design = starter;
-  const t1 = createTile("title");
-  const t2 = createTile("main-image");
-  const t3 = createTile("effect");
-  starter.tiles.push(t1, t2, t3);
-  starter.updatedAt = new Date().toISOString();
-  state.design = prevDesign;
-  return starter;
-}
-
-function buildDefaultDesign(overrides = {}) {
-  const defaults = {
-    name: "Untitled Design",
-    card: { preset: "poker", widthIn: 2.5, heightIn: 3.5 },
-    snapEnabled: true,
-    gridStepIn: 0.005,
-    showSafeBorder: true,
-  };
-  const next = {
-    ...defaults,
-    ...overrides,
-    card: {
-      ...defaults.card,
-      ...(overrides.card || {}),
-    },
-  };
-  return {
-    name: next.name,
-    card: next.card,
-    snapEnabled: next.snapEnabled,
-    gridStepIn: next.gridStepIn,
-    showSafeBorder: next.showSafeBorder,
-    tiles: [],
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function setStatus(text) {
-  els.statusText.textContent = text;
-}
-
-function applyTheme(theme) {
-  const next = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.theme = next;
-  document.documentElement.style.colorScheme = next;
-  document.body.setAttribute("data-theme", next);
-  if (els.themeToggleBtn) {
-    const label = next === "dark" ? "Switch to light mode" : "Switch to dark mode";
-    els.themeToggleBtn.setAttribute("aria-label", label);
-    els.themeToggleBtn.title = label;
-  }
-  const themeMeta = document.querySelector("#themeColorMeta");
-  if (themeMeta) themeMeta.setAttribute("content", next === "dark" ? "#090b10" : "#f4f7fb");
-}
-
-function initTheme() {
-  let saved = null;
-  try {
-    saved = localStorage.getItem(THEME_KEY);
-  } catch (error) {
-    // Use the preselected system theme when storage is unavailable.
-  }
-  if (saved === "dark" || saved === "light") {
-    applyTheme(saved);
-    return;
-  }
-  applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
-}
-
-function applyTooltips() {
-  const tips = {
-    projectName: "Name your current card project.",
-    newCardBtn: "Create a new card in this session.",
-    duplicateCardBtn: "Duplicate the current card and edit the copy independently.",
-    deleteCardBtn: "Delete the currently active card.",
-    cardSizeSelect: "Choose a preset card size or Custom.",
-    customWidth: "Set custom card width.",
-    customHeight: "Set custom card height.",
-    snapToggle: "Snap tile movement/resizing to grid increments.",
-    gridStepInput: "Grid increment size used when snapping.",
-    showSafeBorder: "Show or hide the safe print border guide.",
-    feedbackBtn: "Send feedback by email.",
-    saveProjectBtn: "Download this project as a JSON file.",
-    loadProjectBtn: "Load a previously saved project JSON file.",
-    resetProjectBtn: "Start over with the default starter tiles.",
-    previewCardBtn: "Preview the card image before exporting.",
-    exportScopeSelect: "Choose whether to export only the active card or all cards in this session.",
-    exportPngBtn: "Export the current card as a PNG image.",
-    pdfPageSize: "Choose paper size for PDF sheet export.",
-    pdfLayout: "Choose tiled sheet arrangement for PDF export.",
-    pdfCopies: "Number of card copies to place into the PDF export.",
-    exportPdfBtn: "Export the card as a tiled print-ready PDF.",
-    tileNameInput: "Rename the selected tile.",
-    tileTransparentBgInput: "Make selected tile background transparent.",
-    tileShowOutlineInput: "Show or hide the selected tile outline.",
-    tileXInput: "Set selected tile X position.",
-    tileYInput: "Set selected tile Y position.",
-    tileWInput: "Set selected tile width.",
-    tileHInput: "Set selected tile height.",
-    tileRotationSelect: "Rotate selected tile content in 90-degree steps.",
-    inspectorModeBtn: "Toggle advanced controls for the selected tile.",
-    deleteTileBtn: "Delete the currently selected tile.",
-    fontFamilySelect: "Choose font family for selected text tile.",
-    fontSizeInput: "Set font size for selected text tile.",
-    lineHeightInput: "Set line spacing for selected text tile.",
-    textAlignSelect: "Set horizontal text alignment.",
-    textFlowModeSelect: "Choose rotated text flow or vertical writing mode.",
-    textVAlignSelect: "Set vertical alignment inside the text tile.",
-    letterSpacingInput: "Set spacing between letters.",
-    textColorInput: "Set text color.",
-    bgColorInput: "Set text tile background color.",
-    titleBannerEnabled: "Toggle a banner behind title text.",
-    titleBannerMode: "Choose banner style: color, gradient, or image.",
-    titleBannerColor: "Choose title banner solid color.",
-    titleBannerGradient: "Choose title banner gradient style.",
-    titleBannerUploadBtn: "Upload an image for the title banner.",
-    titleBannerPaddingMm: "Set title text padding inside the banner (mm).",
-    imageFillMode: "Choose image, solid color, or gradient fill for selected image tile.",
-    imageFillColor: "Choose a solid fill color for selected image tile.",
-    imageFillGradient: "Choose a gradient fill style for selected image tile.",
-    uploadImageBtn: "Upload image for selected image/icon/background tile.",
-    iconValueInput: "Set icon numeric value text.",
-    iconValueColor: "Set icon value text color.",
-    iconValueSize: "Set icon value font size.",
-    iconOutlineColor: "Set icon value outline color.",
-    iconOutlineWidth: "Set icon value outline width.",
-    iconOffsetX: "Nudge icon value horizontally.",
-    iconOffsetY: "Nudge icon value vertically.",
-    openTutorialBtn: "Open the quick walkthrough tutorial.",
-    toolsMenuBtn: "Open links to your other PnP sites.",
-    themeToggleBtn: "Toggle between light and dark themes.",
-  };
-
-  Object.entries(tips).forEach(([id, text]) => {
-    const el = document.getElementById(id);
-    if (el) el.title = text;
-  });
-
-  els.tilePalette?.querySelectorAll("button").forEach((btn) => {
-    const type = btn.dataset.tileType || "tile";
-    btn.title = `Drag this ${type.replace("-", " ")} tile onto the card.`;
-  });
-
-  els.toolbarButtons?.forEach((btn) => {
-    const cmd = btn.dataset.cmd || "format";
-    const cmdLabelMap = {
-      bold: "Bold",
-      italic: "Italic",
-      underline: "Underline",
-      justifyLeft: "Align left",
-      justifyCenter: "Align center",
-      justifyRight: "Align right",
-      justifyFull: "Justify",
-    };
-    btn.title = `${cmdLabelMap[cmd] || cmd} selected text.`;
-  });
-}
-
-function closePreviewModal() {
-  if (!els.previewModal) return;
-  els.previewModal.hidden = true;
-}
-
-function sortFontFamilyOptions() {
-  if (!els.fontFamilySelect) return;
-  const selectedValue = els.fontFamilySelect.value;
-  const options = Array.from(els.fontFamilySelect.options);
-  options.sort((a, b) =>
-    a.textContent.trim().localeCompare(b.textContent.trim(), undefined, { sensitivity: "base" })
-  );
-  els.fontFamilySelect.innerHTML = "";
-  options.forEach((option) => {
-    els.fontFamilySelect.appendChild(option);
-  });
-  if (options.some((option) => option.value === selectedValue)) {
-    els.fontFamilySelect.value = selectedValue;
-  }
-}
-
-function openTutorialPrompt(force = false) {
-  if (!els.tutorialModal) return;
-  if (!force && localStorage.getItem(TUTORIAL_SEEN_KEY) === "1") return;
-  els.tutorialChoiceRow.hidden = false;
-  els.tutorialModal.hidden = false;
-}
-
-function getTutorialSteps() {
-  return [
-    {
-      selector: "#projectName",
-      text: "Name your project so exports and saved JSON files are easy to identify.",
-    },
-    {
-      selector: "#cardStage .tile.title",
-      text: "Type your card title directly in the preloaded Title tile.",
-    },
-    {
-      selector: "#cardStage .tile.main-image",
-      text: "Select Main Image and upload artwork (game-icons.net is a great free source).",
-    },
-    {
-      selector: "#cardStage .tile.effect",
-      text: "Enter your rules text in the preloaded Effect tile.",
-    },
-    {
-      selector: "#tileRotationSelect",
-      text: "Use Rotation (0/90/180/270) for side text. Text tiles also support Rotated Text or Vertical Writing.",
-    },
-    {
-      selector: "#tilePalette",
-      text: "Add optional tiles like Icon, Flavor Text, and Card Background as needed.",
-    },
-    {
-      selector: "#cardsList",
-      text: "Use Cards to switch between designs, duplicate a card, or start a new one in the same session.",
-    },
-    {
-      selector: "#layersList",
-      text: "Use Layers to reorder, hide, and manage tile transparency.",
-    },
-    {
-      selector: "#exportScopeSelect",
-      text: "Set Export Scope to Active Card or All Cards in Session before exporting.",
-    },
-    {
-      selector: "#exportPngBtn",
-      text: "Export PNG for the active card, or export all cards in session as separate PNG files.",
-    },
-    {
-      selector: "#exportPdfBtn",
-      text: "Export PDF for print sheets. With All Cards scope, each card is placed once with cut guides.",
-    },
-    {
-      selector: "#saveProjectBtn",
-      text: "Save Project JSON stores your full multi-card session; load it later to continue where you left off.",
-    },
-  ];
-}
-
-function clearTutorialHighlight() {
-  if (!state.tutorial.highlightedSelector) return;
-  const prev = document.querySelector(state.tutorial.highlightedSelector);
-  if (prev) prev.classList.remove("tutorial-target");
-  state.tutorial.highlightedSelector = "";
-}
-
-function closeTutorial(markSeen = true) {
-  if (els.tutorialModal) els.tutorialModal.hidden = true;
-  if (els.tutorialGuide) els.tutorialGuide.hidden = true;
-  clearTutorialHighlight();
-  state.tutorial.active = false;
-  if (markSeen) {
-    localStorage.setItem(TUTORIAL_SEEN_KEY, "1");
-  }
-}
-
-function positionTutorialGuide(target) {
-  if (!els.tutorialGuide) return;
-  const card = els.tutorialGuide.querySelector(".tutorial-guide-card");
-  if (!card || !target) return;
-  const rect = target.getBoundingClientRect();
-  const cardRect = card.getBoundingClientRect();
-  const margin = 12;
-
-  let left = rect.right + margin;
-  if (left + cardRect.width > window.innerWidth - 10) {
-    left = rect.left - cardRect.width - margin;
-  }
-  left = clamp(left, 10, Math.max(10, window.innerWidth - cardRect.width - 10));
-
-  let top = rect.top + (rect.height - cardRect.height) / 2;
-  top = clamp(top, 72, Math.max(72, window.innerHeight - cardRect.height - 10));
-
-  card.style.left = `${Math.round(left)}px`;
-  card.style.top = `${Math.round(top)}px`;
-}
-
-function ensureTutorialTargetVisible(target) {
-  if (!target) return;
-  // Let the browser scroll any relevant container (including overflow panels)
-  // so the target can be highlighted even when it's below the fold.
-  target.scrollIntoView({
-    block: "center",
-    inline: "nearest",
-    behavior: "auto",
-  });
-}
-
-function renderTutorialGuide() {
-  if (!state.tutorial.active || !els.tutorialGuide) return;
-  const steps = getTutorialSteps();
-  let index = clamp(state.tutorial.index, 0, steps.length - 1);
-  let step = steps[index];
-  let target = step ? document.querySelector(step.selector) : null;
-
-  if (!target) {
-    for (let i = 0; i < steps.length; i += 1) {
-      const candidate = document.querySelector(steps[i].selector);
-      if (candidate) {
-        index = i;
-        step = steps[i];
-        target = candidate;
-        break;
-      }
-    }
-  }
-
-  if (!target || !step) {
-    closeTutorial(true);
-    return;
-  }
-
-  state.tutorial.index = index;
-  ensureTutorialTargetVisible(target);
-  clearTutorialHighlight();
-  target.classList.add("tutorial-target");
-  state.tutorial.highlightedSelector = step.selector;
-
-  els.tutorialGuideStep.textContent = `Step ${index + 1} of ${steps.length}`;
-  els.tutorialGuideText.textContent = step.text;
-  els.tutorialPrevBtn.disabled = index === 0;
-  els.tutorialNextBtn.textContent = index === steps.length - 1 ? "Done" : "Next";
-  els.tutorialGuide.hidden = false;
-  positionTutorialGuide(target);
-}
-
-function startTutorialGuide() {
-  state.tutorial.active = true;
-  state.tutorial.index = 0;
-  if (els.tutorialModal) els.tutorialModal.hidden = true;
-  renderTutorialGuide();
-}
-
-function inchesToPoints(inches) {
-  return inches * POINTS_PER_IN;
-}
-
-function mmToPx(mm) {
-  return (Number(mm) * 96) / 25.4;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function normalizeRotation(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  const normalized = ((Math.round(n / 90) * 90) % 360 + 360) % 360;
-  return [0, 90, 180, 270].includes(normalized) ? normalized : 0;
-}
-
-function uuid() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function getCardSize() {
-  return {
-    w: state.design.card.widthIn,
-    h: state.design.card.heightIn,
-  };
-}
-
-function getPxPerIn() {
-  const { w } = getCardSize();
-  return els.cardStage.clientWidth / w;
-}
-
-function toInches(px) {
-  return px / getPxPerIn();
-}
-
-function toPixels(inches) {
-  return inches * getPxPerIn();
-}
-
-function snap(inches) {
-  if (!state.design.snapEnabled) return inches;
-  const step = Math.max(0.005, state.design.gridStepIn || 0.125);
-  return Math.round(inches / step) * step;
-}
-
-function safeBounds() {
-  const size = getCardSize();
-  return {
-    left: SAFE_BORDER_IN,
-    top: SAFE_BORDER_IN,
-    right: size.w - SAFE_BORDER_IN,
-    bottom: size.h - SAFE_BORDER_IN,
-  };
-}
-
-function constrainTile(tile) {
-  const size = getCardSize();
-  const bounds =
-    tile.type === "card-background"
-      ? { left: 0, top: 0, right: size.w, bottom: size.h }
-      : safeBounds();
-  const minW = 0.3;
-  const minH = 0.3;
-  tile.wIn = clamp(tile.wIn, minW, bounds.right - bounds.left);
-  tile.hIn = clamp(tile.hIn, minH, bounds.bottom - bounds.top);
-  tile.xIn = clamp(tile.xIn, bounds.left, bounds.right - tile.wIn);
-  tile.yIn = clamp(tile.yIn, bounds.top, bounds.bottom - tile.hIn);
-}
-
-function getDefaultTextStyle(type) {
-  if (type === "title") {
-    return {
-      fontFamily: "'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
-      fontSize: 82,
-      lineHeight: 1.2,
-      textFlowMode: "rotated",
-      verticalAlign: "middle",
-      letterSpacing: 0,
-      textAlign: "center",
-      color: "#1f2430",
-      background: "#ffffff",
-    };
-  }
-  if (type === "flavor") {
-    return {
-      fontFamily: "'Cormorant Garamond', Georgia, serif",
-      fontSize: 42,
-      lineHeight: 1.35,
-      textFlowMode: "rotated",
-      verticalAlign: "middle",
-      letterSpacing: 0,
-      textAlign: "left",
-      color: "#2e3440",
-      background: "#ffffff",
-    };
-  }
-  if (type === "effect") {
-    return {
-      fontFamily: "'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
-      fontSize: 42,
-      lineHeight: 1.25,
-      textFlowMode: "rotated",
-      verticalAlign: "middle",
-      letterSpacing: 0,
-      textAlign: "left",
-      color: "#1f2430",
-      background: "#ffffff",
-    };
-  }
-  return {
-    fontFamily: "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif",
-    fontSize: 36,
-    lineHeight: 1.25,
-    textFlowMode: "rotated",
-    verticalAlign: "middle",
-    letterSpacing: 0,
-    textAlign: "left",
-    color: "#1f2430",
-    background: "#ffffff",
-  };
-}
-
-function getDefaultImageFill(type) {
-  if (type === "card-background") {
-    return {
-      mode: "gradient",
-      color: "#f8f8f8",
-      gradient: "linear-gradient(180deg, #ffffff, #e8f2ff)",
-    };
-  }
-  return {
-    mode: "image",
-    color: "#f8f8f8",
-    gradient: "linear-gradient(180deg, #ffffff, #e8f2ff)",
-  };
-}
-
-function createTile(type, xIn, yIn) {
-  const size = getCardSize();
-  const isAutoCenter = xIn == null && yIn == null;
-  const isImageType = type === "main-image" || type === "card-background";
-  const presets = {
-    "card-background": { w: size.w, h: size.h, x: 0, y: 0 },
-    title: { w: 1.9, h: 0.7, y: SAFE_BORDER_IN },
-    effect: { w: 1.9, h: 1.1, y: 2.0 },
-    flavor: { w: 1.9, h: 0.75, y: 2.85 },
-    "main-image": { w: 1.9, h: 1.45, y: 0.95 },
-    icon: { w: 0.55, h: 0.55, y: SAFE_BORDER_IN + 0.05 },
-  };
-  const base = presets[type] || presets.effect;
-  const centerX = (size.w - base.w) / 2;
-  const centerY = (size.h - base.h) / 2;
-  const bounds = safeBounds();
-  const gap = 0.06;
-  const titleBottomY = presets.title.y + presets.title.h;
-  const effectY = bounds.bottom - presets.effect.h;
-  const mainTop = titleBottomY + gap;
-  const mainBottom = effectY - gap;
-  const mainAvailable = Math.max(0.6, mainBottom - mainTop);
-  const mainImageH = Math.min(presets["main-image"].h, mainAvailable);
-  const mainImageY = mainTop + Math.max(0, (mainAvailable - mainImageH) / 2);
-  const defaultY =
-    type === "title"
-      ? base.y
-      : type === "card-background"
-        ? 0
-      : type === "main-image"
-        ? mainImageY
-        : type === "effect"
-          ? effectY
-          : centerY;
-  const tile = {
-    id: uuid(),
-    type,
-    label: type.replace("-", " "),
-    xIn: xIn ?? (type === "card-background" ? 0 : centerX),
-    yIn: yIn ?? defaultY,
-    wIn: base.w,
-    hIn: type === "main-image" ? mainImageH : base.h,
-    rotationDeg: 0,
-    textHtml: isImageType || type === "icon" ? "" : defaultHtml(type),
-    titlePlacement: "top",
-    hidden: false,
-    transparentBg: type === "card-background" || type === "main-image" || type === "icon",
-    showOutline: true,
-    titleBanner: {
-      enabled: false,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-    },
-    style: getDefaultTextStyle(type),
-    imageDataUrl: "",
-    imageFill: getDefaultImageFill(type),
-    icon: {
-      value: "1",
-      position: "overlay",
-      valueColor: "#ffffff",
-      valueSize: 60,
-      outlineColor: "#111111",
-      outlineWidth: 2,
-      offsetX: 0,
-      offsetY: 0,
-    },
-  };
-
-  constrainTile(tile);
-  if (!isAutoCenter) {
-    tile.xIn = snap(tile.xIn);
-    tile.yIn = snap(tile.yIn);
-  }
-  return tile;
-}
-
-function defaultHtml(type) {
-  if (type === "title") return "<div>CARD TITLE</div>";
-  if (type === "effect") return "<div>Effect rules text goes here.</div>";
-  if (type === "flavor") return "<div><em>Flavor text goes here.</em></div>";
-  return "<div>Text</div>";
-}
-
-function updateStageGeometry() {
-  const size = getCardSize();
-  els.cardStageWrap.style.aspectRatio = `${size.w} / ${size.h}`;
-  const left = `${(SAFE_BORDER_IN / size.w) * 100}%`;
-  const right = `${(SAFE_BORDER_IN / size.w) * 100}%`;
-  const top = `${(SAFE_BORDER_IN / size.h) * 100}%`;
-  const bottom = `${(SAFE_BORDER_IN / size.h) * 100}%`;
-  els.cardStage.style.setProperty("--safe-border-left", left);
-  els.cardStage.style.setProperty("--safe-border-right", right);
-  els.cardStage.style.setProperty("--safe-border-top", top);
-  els.cardStage.style.setProperty("--safe-border-bottom", bottom);
-  els.cardStage.style.setProperty("--safe-border-opacity", state.design.showSafeBorder ? "0.85" : "0");
-}
-
-function getSelectedTile() {
-  return state.design.tiles.find((t) => t.id === state.selectedTileId) || null;
-}
-
-function syncSelectionVisuals() {
-  const tileEls = els.cardStage.querySelectorAll(".tile");
-  tileEls.forEach((node) => {
-    const tileIndex = state.design.tiles.findIndex((t) => t.id === node.dataset.tileId);
-    const baseZ = tileIndex >= 0 ? tileIndex + 1 : 1;
-    const active = node.dataset.tileId === state.selectedTileId;
-    node.classList.toggle("selected", active);
-    node.style.zIndex = active ? String(baseZ + 100) : String(baseZ);
-  });
-}
-
-function renderTile(tile) {
-  const tileEl = document.createElement("div");
-  tileEl.className = `tile ${tile.type}`;
-  if (tile.showOutline === false) tileEl.classList.add("no-outline");
-  tileEl.dataset.tileId = tile.id;
-  if (state.selectedTileId === tile.id) tileEl.classList.add("selected");
-  tileEl.style.left = `${toPixels(tile.xIn)}px`;
-  tileEl.style.top = `${toPixels(tile.yIn)}px`;
-  tileEl.style.width = `${toPixels(tile.wIn)}px`;
-  tileEl.style.height = `${toPixels(tile.hIn)}px`;
-  tileEl.style.background = tile.transparentBg ? "transparent" : tile.style.background || "#ffffff";
-  const layerIndex = state.design.tiles.findIndex((t) => t.id === tile.id);
-  const baseZ = layerIndex >= 0 ? layerIndex + 1 : 1;
-  tileEl.style.zIndex = state.selectedTileId === tile.id ? String(baseZ + 100) : String(baseZ);
-
-  const header = document.createElement("div");
-  header.className = "tile-header export-hide";
-  header.textContent = tile.label || tile.type;
-  tileEl.appendChild(header);
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "tile-delete export-hide";
-  deleteBtn.type = "button";
-  deleteBtn.setAttribute("aria-label", "Delete tile");
-  deleteBtn.textContent = "X";
-  tileEl.appendChild(deleteBtn);
-
-  const content = document.createElement("div");
-  content.className = "tile-content";
-  content.style.transformOrigin = "50% 50%";
-
-  if (isTextTile(tile)) {
-    content.style.overflow = "hidden";
-    const editable = document.createElement("div");
-    editable.className = "tile-text-editable";
-    editable.dataset.tileContentId = tile.id;
-    editable.contentEditable = "true";
-    editable.spellcheck = false;
-    editable.innerHTML = tile.textHtml || "";
-    applyTextStyle(editable, tile);
-    applyTextFlowLayout(editable, tile);
-    editable.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      if (state.selectedTileId !== tile.id) {
-        state.selectedTileId = tile.id;
-        syncSelectionVisuals();
-        renderSelectionPanel();
-      }
-    });
-    editable.addEventListener("focus", () => {
-      state.liveEditable = editable;
-      if (state.selectedTileId !== tile.id) {
-        state.selectedTileId = tile.id;
-        syncSelectionVisuals();
-      }
-      renderSelectionPanel();
-    });
-    editable.addEventListener("blur", () => {
-      if (state.liveEditable === editable) {
-        state.liveEditable = null;
-      }
-    });
-    editable.addEventListener("input", () => {
-      tile.textHtml = editable.innerHTML;
-      persistDraft();
-    });
-    content.appendChild(editable);
-  } else {
-    content.style.rotate = `${normalizeRotation(tile.rotationDeg)}deg`;
-    const fill = {
-      ...getDefaultImageFill(tile.type),
-      ...(tile.imageFill || {}),
-    };
-    const hasImage = Boolean(tile.imageDataUrl);
-    content.innerHTML = "";
-    content.style.backgroundColor = "transparent";
-    content.style.backgroundImage = "none";
-    content.style.backgroundRepeat = "no-repeat";
-    content.style.backgroundPosition = "center";
-    content.style.backgroundSize = "cover";
-
-    const layers = [];
-    const layerSizes = [];
-    const layerRepeats = [];
-    const layerPositions = [];
-
-    if (hasImage) {
-      layers.push(`url(${tile.imageDataUrl})`);
-      layerSizes.push(tile.type === "card-background" ? "cover" : "contain");
-      layerRepeats.push("no-repeat");
-      layerPositions.push("center");
-    }
-    if (fill.mode === "color") {
-      content.style.backgroundColor = fill.color || "#f8f8f8";
-    } else if (fill.mode === "gradient") {
-      layers.push(fill.gradient || "linear-gradient(180deg, #ffffff, #e8f2ff)");
-      layerSizes.push("cover");
-      layerRepeats.push("no-repeat");
-      layerPositions.push("center");
-    }
-
-    if (layers.length > 0) {
-      content.style.backgroundImage = layers.join(", ");
-      content.style.backgroundSize = layerSizes.join(", ");
-      content.style.backgroundRepeat = layerRepeats.join(", ");
-      content.style.backgroundPosition = layerPositions.join(", ");
-    }
-
-    if (!hasImage && fill.mode === "image") {
-      content.innerHTML = "<div style='padding:8px;color:#67717d;font-size:12px;'>No image yet</div>";
-    }
-  }
-
-  tileEl.appendChild(content);
-
-  if (tile.type === "icon") {
-    const value = document.createElement("div");
-    value.className = "tile-icon-value overlay";
-    value.textContent = tile.icon.value || "1";
-    value.style.color = tile.icon.valueColor || "#fff";
-    value.style.fontSize = `${tile.icon.valueSize || 24}px`;
-    value.style.marginLeft = `${Number(tile.icon.offsetX || 0)}px`;
-    value.style.marginTop = `${Number(tile.icon.offsetY || 0)}px`;
-    value.style.rotate = `${normalizeRotation(tile.rotationDeg)}deg`;
-    const outline = Number(tile.icon.outlineWidth || 0);
-    if (outline > 0) {
-      value.style.webkitTextStroke = `${outline}px ${tile.icon.outlineColor || "#111"}`;
-      value.style.paintOrder = "stroke fill";
-    } else {
-      value.style.webkitTextStroke = "0";
-    }
-    tileEl.appendChild(value);
-  }
-
-  const handle = document.createElement("div");
-  handle.className = "resize-handle export-hide";
-  tileEl.appendChild(handle);
-
-  header.addEventListener("pointerdown", (e) => beginDrag(e, tile.id, "move"));
-  handle.addEventListener("pointerdown", (e) => beginDrag(e, tile.id, "resize"));
-  deleteBtn.addEventListener("pointerdown", (e) => {
-    // Prevent parent tile pointer handlers from re-rendering before click fires.
-    e.stopPropagation();
-  });
-  deleteBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    state.design.tiles = state.design.tiles.filter((t) => t.id !== tile.id);
-    if (state.selectedTileId === tile.id) {
-      state.selectedTileId = state.design.tiles[0]?.id || null;
-    }
-    render();
-  });
-  tileEl.addEventListener("pointerdown", (e) => {
-    if (isTextTile(tile) && content.contains(e.target)) return;
-    state.selectedTileId = tile.id;
-    renderSelectionPanel();
-    render();
-  });
-
-  return tileEl;
-}
-
-function isTextTile(tile) {
-  return tile.type === "title" || tile.type === "effect" || tile.type === "flavor";
-}
-
-function applyTextStyle(element, tile) {
-  const style = tile.style || {};
-  const vAlignMap = {
-    top: "flex-start",
-    middle: "center",
-    bottom: "flex-end",
-  };
-  element.style.display = "flex";
-  element.style.flexDirection = "column";
-  element.style.justifyContent = vAlignMap[style.verticalAlign] || "center";
-  element.style.fontFamily =
-    style.fontFamily || "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
-  element.style.fontSize = `${Number(style.fontSize || 16)}px`;
-  element.style.lineHeight = String(style.lineHeight || 1.2);
-  element.style.letterSpacing = `${Number(style.letterSpacing || 0)}px`;
-  element.style.textAlign = style.textAlign || "left";
-  element.style.color = style.color || "#1f2430";
-
-  if (tile.type === "title") {
-    const banner = tile.titleBanner || {};
-    if (banner.enabled) {
-      element.style.padding = `${mmToPx(banner.paddingMm ?? 0.5).toFixed(2)}px`;
-      element.style.borderRadius = "4px";
-      element.style.backgroundColor = "transparent";
-      element.style.backgroundImage = "none";
-      element.style.backgroundSize = "";
-      element.style.backgroundRepeat = "";
-      element.style.backgroundPosition = "";
-      if (banner.mode === "color") {
-        element.style.backgroundColor = banner.color || "#1f2430";
-      } else if (banner.mode === "gradient") {
-        element.style.backgroundImage = banner.gradient || "linear-gradient(90deg, #1f2937, #3b82f6)";
-      } else if (banner.mode === "image" && banner.imageDataUrl) {
-        element.style.backgroundImage = `url(${banner.imageDataUrl})`;
-        element.style.backgroundSize = "100% 100%";
-        element.style.backgroundRepeat = "no-repeat";
-        element.style.backgroundPosition = "center";
-      } else {
-        element.style.backgroundColor = banner.color || "#1f2430";
-      }
-    } else {
-      element.style.padding = "";
-      element.style.borderRadius = "";
-      element.style.backgroundColor = "";
-      element.style.backgroundImage = "";
-      element.style.backgroundSize = "";
-      element.style.backgroundRepeat = "";
-      element.style.backgroundPosition = "";
-    }
-  }
-}
-
-function applyTextFlowLayout(element, tile) {
-  const rotation = normalizeRotation(tile.rotationDeg);
-  const flowMode = tile.style?.textFlowMode === "vertical" ? "vertical" : "rotated";
-  const insetX = 14;
-  const insetY = 29;
-  const contentW = Math.max(12, toPixels(tile.wIn) - insetX);
-  const contentH = Math.max(12, toPixels(tile.hIn) - insetY);
-  const quarterTurn = rotation === 90 || rotation === 270;
-
-  element.style.position = "absolute";
-  element.style.left = "50%";
-  element.style.top = "50%";
-  element.style.transformOrigin = "50% 50%";
-  element.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-  element.style.overflow = "visible";
-  element.style.whiteSpace = "pre-wrap";
-  element.style.wordBreak = "break-word";
-  element.scrollTop = 0;
-  element.scrollLeft = 0;
-
-  if (flowMode === "vertical") {
-    element.style.width = `${contentW}px`;
-    element.style.height = `${contentH}px`;
-    element.style.writingMode = "vertical-rl";
-    element.style.textOrientation = "mixed";
-    return;
-  }
-
-  if (quarterTurn) {
-    // Swap layout box so line wrapping follows the Y-axis at 90/270.
-    element.style.width = `${contentH}px`;
-    element.style.height = `${contentW}px`;
-  } else {
-    element.style.width = `${contentW}px`;
-    element.style.height = `${contentH}px`;
-  }
-  element.style.writingMode = "horizontal-tb";
-  element.style.textOrientation = "";
-}
-
-function getEditableForSelectedTile() {
-  const tile = getSelectedTile();
-  if (!tile || !isTextTile(tile)) return null;
-  const node = els.cardStage.querySelector(`[data-tile-content-id="${tile.id}"]`);
-  return node || null;
-}
-
-function render() {
-  updateStageGeometry();
-  els.cardStage.innerHTML = "";
-  state.design.tiles.forEach((tile) => {
-    constrainTile(tile);
-    if (tile.hidden) return;
-    const node = renderTile(tile);
-    els.cardStage.appendChild(node);
-  });
-  renderSelectionPanel();
-  renderLayersPanel();
-  renderCardsPanel();
-  if (state.tutorial.active) {
-    renderTutorialGuide();
-  }
-  persistDraft();
-}
-
-function renderSelectionPanel() {
-  const tile = getSelectedTile();
-  els.tileControls.hidden = !tile;
-  els.floatingPalette.hidden = !tile;
-  if (!tile) return;
-
-  els.tileNameInput.value = tile.label || "";
-  els.tileTransparentBgInput.checked = !!tile.transparentBg;
-  els.tileShowOutlineInput.checked = tile.showOutline !== false;
-  els.tileXInput.value = tile.xIn.toFixed(2);
-  els.tileYInput.value = tile.yIn.toFixed(2);
-  els.tileWInput.value = tile.wIn.toFixed(2);
-  els.tileHInput.value = tile.hIn.toFixed(2);
-  els.tileRotationSelect.value = String(normalizeRotation(tile.rotationDeg));
-
-  const style = tile.style || {};
-  els.fontFamilySelect.value =
-    style.fontFamily || "'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
-  els.fontSizeInput.value = style.fontSize || 16;
-  els.lineHeightInput.value = style.lineHeight || 1.2;
-  els.textAlignSelect.value = style.textAlign || "left";
-  els.textFlowModeSelect.value = style.textFlowMode || "rotated";
-  els.textVAlignSelect.value = style.verticalAlign || "middle";
-  els.letterSpacingInput.value = style.letterSpacing || 0;
-  els.textColorInput.value = style.color || "#1f2430";
-  els.bgColorInput.value = style.background || "#ffffff";
-
-  const isText = isTextTile(tile);
-  const isImage = tile.type === "main-image" || tile.type === "card-background";
-  const isIcon = tile.type === "icon";
-  const hasAdvancedControls = tile.type === "title" || tile.type === "icon";
-  if (!hasAdvancedControls) {
-    state.inspector.advanced = false;
-  }
-  const showAdvanced = hasAdvancedControls && state.inspector.advanced;
-  const textAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-text") || [];
-  const titleAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-title") || [];
-  const imageAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-image") || [];
-  const iconAdvancedEls = els.floatingPalette?.querySelectorAll(".adv-icon") || [];
-  textAdvancedEls.forEach((el) => {
-    el.hidden = !(showAdvanced && isText);
-  });
-  titleAdvancedEls.forEach((el) => {
-    el.hidden = !(showAdvanced && tile.type === "title");
-  });
-  imageAdvancedEls.forEach((el) => {
-    el.hidden = !(showAdvanced && (isImage || isIcon));
-  });
-  iconAdvancedEls.forEach((el) => {
-    el.hidden = !(showAdvanced && isIcon);
-  });
-  if (els.inspectorModeRow) {
-    els.inspectorModeRow.hidden = !hasAdvancedControls;
-  }
-  if (els.inspectorModeBtn) {
-    els.inspectorModeBtn.textContent = showAdvanced ? "Show Basic Controls" : "Show Advanced Controls";
-  }
-  els.textControlsWrap.hidden = !isText;
-  els.titleControls.hidden = tile.type !== "title";
-  els.imageControls.hidden = !(isImage || isIcon);
-  els.iconControls.hidden = !isIcon;
-  if (!showAdvanced) {
-    els.titleControls.hidden = true;
-    els.iconControls.hidden = true;
-  }
-
-  if (tile.type === "title") {
-    const banner = tile.titleBanner || {};
-    els.titleBannerEnabled.checked = !!banner.enabled;
-    els.titleBannerMode.value = banner.mode || "color";
-    els.titleBannerColor.value = banner.color || "#1f2430";
-    els.titleBannerGradient.value = banner.gradient || "linear-gradient(90deg, #1f2937, #3b82f6)";
-    els.titleBannerPaddingMm.value = Number(banner.paddingMm ?? 0.5);
-    updateTitleBannerControls(tile);
-  }
-  if (tile.type === "icon") {
-    tile.icon.position = "overlay";
-    els.iconValueInput.value = tile.icon.value || "";
-    els.iconValueColor.value = tile.icon.valueColor || "#ffffff";
-    els.iconValueSize.value = tile.icon.valueSize || 60;
-    els.iconOutlineColor.value = tile.icon.outlineColor || "#111111";
-    els.iconOutlineWidth.value = tile.icon.outlineWidth || 2;
-    els.iconOffsetX.value = tile.icon.offsetX || 0;
-    els.iconOffsetY.value = tile.icon.offsetY || 0;
-  }
-  if (isImage || isIcon) {
-    tile.imageFill = {
-      ...getDefaultImageFill(tile.type),
-      ...(tile.imageFill || {}),
-    };
-    els.imageFillMode.value = tile.imageFill.mode || "image";
-    els.imageFillColor.value = tile.imageFill.color || "#f8f8f8";
-    els.imageFillGradient.value =
-      tile.imageFill.gradient || "linear-gradient(180deg, #ffffff, #e8f2ff)";
-    updateImageFillControls(tile);
-  } else {
-    updateImageFillControls(null);
-  }
-
-  positionFloatingPalette(tile.id);
-}
-
-function updateTitleBannerControls(tile) {
-  const isTitle = tile && tile.type === "title";
-  if (!isTitle) {
-    els.titleBannerColorRow.hidden = true;
-    els.titleBannerGradientRow.hidden = true;
-    els.titleBannerImageRow.hidden = true;
-    return;
-  }
-  const banner = tile.titleBanner || {};
-  const enabled = !!banner.enabled;
-  const mode = banner.mode || "color";
-  els.titleBannerMode.disabled = !enabled;
-  els.titleBannerPaddingMm.disabled = !enabled;
-  els.titleBannerColorRow.hidden = !enabled || mode !== "color";
-  els.titleBannerGradientRow.hidden = !enabled || mode !== "gradient";
-  els.titleBannerImageRow.hidden = !enabled || mode !== "image";
-}
-
-function updateImageFillControls(tile) {
-  const isImageTile = tile && (tile.type === "main-image" || tile.type === "card-background" || tile.type === "icon");
-  if (!isImageTile) {
-    els.imageFillColorRow.hidden = true;
-    els.imageFillGradientRow.hidden = true;
-    els.uploadImageBtn.disabled = false;
-    return;
-  }
-  const fill = {
-    ...getDefaultImageFill(tile.type),
-    ...(tile.imageFill || {}),
-  };
-  const mode = fill.mode || "image";
-  els.imageFillColorRow.hidden = mode !== "color";
-  els.imageFillGradientRow.hidden = mode !== "gradient";
-  els.uploadImageBtn.disabled = false;
-}
-
-function moveLayer(tileId, direction) {
-  const index = state.design.tiles.findIndex((t) => t.id === tileId);
-  if (index < 0) return;
-  const target = index + direction;
-  if (target < 0 || target >= state.design.tiles.length) return;
-  const tmp = state.design.tiles[index];
-  state.design.tiles[index] = state.design.tiles[target];
-  state.design.tiles[target] = tmp;
-}
-
-function renderLayersPanel() {
-  if (!els.layersList) return;
-  els.layersList.innerHTML = "";
-  for (let idx = state.design.tiles.length - 1; idx >= 0; idx -= 1) {
-    const tile = state.design.tiles[idx];
-    const li = document.createElement("li");
-    li.className = "layer-item";
-    if (tile.id === state.selectedTileId) li.classList.add("active");
-
-    const nameBtn = document.createElement("button");
-    nameBtn.type = "button";
-    nameBtn.className = "layer-name";
-    nameBtn.textContent = tile.label || tile.type;
-    nameBtn.addEventListener("click", () => {
-      state.selectedTileId = tile.id;
-      render();
-    });
-
-    const controls = document.createElement("div");
-    controls.className = "layer-controls";
-
-    const upBtn = document.createElement("button");
-    upBtn.type = "button";
-    upBtn.className = "layer-move";
-    upBtn.textContent = "↑";
-    upBtn.title = "Move up";
-    upBtn.disabled = idx === state.design.tiles.length - 1;
-    upBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      moveLayer(tile.id, 1);
-      render();
-    });
-
-    const downBtn = document.createElement("button");
-    downBtn.type = "button";
-    downBtn.className = "layer-move";
-    downBtn.textContent = "↓";
-    downBtn.title = "Move down";
-    downBtn.disabled = idx === 0;
-    downBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      moveLayer(tile.id, -1);
-      render();
-    });
-
-    const visLabel = document.createElement("label");
-    visLabel.className = "layer-check";
-    visLabel.title = "Toggle visibility";
-    const visCheck = document.createElement("input");
-    visCheck.type = "checkbox";
-    visCheck.checked = !tile.hidden;
-    visCheck.addEventListener("change", () => {
-      tile.hidden = !visCheck.checked;
-      render();
-    });
-    const visText = document.createElement("span");
-    visText.textContent = "Show";
-    visLabel.append(visCheck, visText);
-
-    const bgLabel = document.createElement("label");
-    bgLabel.className = "layer-check";
-    bgLabel.title = "Transparent background";
-    const bgCheck = document.createElement("input");
-    bgCheck.type = "checkbox";
-    bgCheck.checked = !!tile.transparentBg;
-    bgCheck.addEventListener("change", () => {
-      tile.transparentBg = bgCheck.checked;
-      render();
-    });
-    const bgText = document.createElement("span");
-    bgText.textContent = "Transparent";
-    bgLabel.append(bgCheck, bgText);
-
-    controls.append(upBtn, downBtn, visLabel, bgLabel);
-    li.append(nameBtn, controls);
-    els.layersList.appendChild(li);
-  }
-}
-
-function positionFloatingPalette(tileId) {
-  const tileEl = els.cardStage.querySelector(`[data-tile-id="${tileId}"]`);
-  if (!tileEl || els.floatingPalette.hidden) return;
-  const paletteRect = els.floatingPalette.getBoundingClientRect();
-  const tileRect = tileEl.getBoundingClientRect();
-  let top = tileRect.top - 6;
-  const minTop = 72;
-  const maxTop = window.innerHeight - paletteRect.height - 10;
-  top = clamp(top, minTop, Math.max(minTop, maxTop));
-  els.floatingPalette.style.top = `${Math.round(top)}px`;
-}
-
-function beginDrag(event, tileId, mode) {
-  event.preventDefault();
-  event.stopPropagation();
-  const tile = state.design.tiles.find((t) => t.id === tileId);
-  if (!tile) return;
-  state.selectedTileId = tileId;
-  state.dragAction = {
-    tileId,
-    mode,
-    startX: event.clientX,
-    startY: event.clientY,
-    xIn: tile.xIn,
-    yIn: tile.yIn,
-    wIn: tile.wIn,
-    hIn: tile.hIn,
-  };
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp, { once: true });
-}
-
-function onPointerMove(event) {
-  if (!state.dragAction) return;
-  const action = state.dragAction;
-  const tile = state.design.tiles.find((t) => t.id === action.tileId);
-  if (!tile) return;
-
-  const dxIn = toInches(event.clientX - action.startX);
-  const dyIn = toInches(event.clientY - action.startY);
-  if (action.mode === "move") {
-    tile.xIn = snap(action.xIn + dxIn);
-    tile.yIn = snap(action.yIn + dyIn);
-  } else {
-    tile.wIn = snap(action.wIn + dxIn);
-    tile.hIn = snap(action.hIn + dyIn);
-  }
-  constrainTile(tile);
-  render();
-}
-
-function onPointerUp() {
-  window.removeEventListener("pointermove", onPointerMove);
-  state.dragAction = null;
-  persistDraft();
-}
-
-function setTilePlacement(tile, placement) {
-  const size = getCardSize();
-  const top = SAFE_BORDER_IN;
-  const middle = size.h / 2 - tile.hIn / 2;
-  const bottom = size.h - SAFE_BORDER_IN - tile.hIn;
-  tile.titlePlacement = placement;
-  if (placement === "middle") tile.yIn = middle;
-  if (placement === "bottom") tile.yIn = bottom;
-  if (placement === "top") tile.yIn = top;
-  tile.yIn = snap(tile.yIn);
-  constrainTile(tile);
-}
-
-function clampTileInputs(tile) {
-  tile.xIn = snap(Number(els.tileXInput.value || tile.xIn));
-  tile.yIn = snap(Number(els.tileYInput.value || tile.yIn));
-  tile.wIn = snap(Number(els.tileWInput.value || tile.wIn));
-  tile.hIn = snap(Number(els.tileHInput.value || tile.hIn));
-  constrainTile(tile);
-}
-
-function ensureTitleContent(tile) {
-  if (!tile || tile.type !== "title") return;
-}
-
-function bindEvents() {
-  window.addEventListener("resize", render);
-
-  const closeToolsMenu = () => {
-    if (!els.toolsMenu || !els.toolsMenuBtn) return;
-    els.toolsMenu.hidden = true;
-    els.toolsMenuBtn.setAttribute("aria-expanded", "false");
-  };
-
-  els.toolsMenuBtn?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    if (!els.toolsMenu || !els.toolsMenuBtn) return;
-    const willOpen = els.toolsMenu.hidden;
-    els.toolsMenu.hidden = !willOpen;
-    els.toolsMenuBtn.setAttribute("aria-expanded", String(willOpen));
-  });
-  els.toolsMenu?.addEventListener("click", (event) => {
-    event.stopPropagation();
-  });
-  document.addEventListener("click", closeToolsMenu);
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeToolsMenu();
-  });
-
-  els.themeToggleBtn?.addEventListener("click", () => {
-    const current = document.body.getAttribute("data-theme") === "dark" ? "dark" : "light";
-    const next = current === "dark" ? "light" : "dark";
-    applyTheme(next);
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch (error) {
-      // The selected theme remains active for this session.
-    }
-  });
-
-  els.feedbackBtn?.addEventListener("click", () => {
-    window.location.href = "mailto:help@pnpfinder.com?subject=Card%20Prototyper%20Feedback";
-  });
-
-  els.openTutorialBtn?.addEventListener("click", () => {
-    openTutorialPrompt(true);
-  });
-  els.inspectorModeBtn?.addEventListener("click", () => {
-    state.inspector.advanced = !state.inspector.advanced;
-    renderSelectionPanel();
-  });
-  els.previewCloseBtn?.addEventListener("click", () => {
-    closePreviewModal();
-  });
-  els.previewModal?.addEventListener("click", (event) => {
-    if (event.target === els.previewModal) closePreviewModal();
-  });
-  els.tutorialViewBtn?.addEventListener("click", () => {
-    startTutorialGuide();
-  });
-  els.tutorialSkipBtn?.addEventListener("click", () => {
-    closeTutorial(true);
-  });
-  els.tutorialPrevBtn?.addEventListener("click", () => {
-    if (!state.tutorial.active) return;
-    state.tutorial.index = Math.max(0, state.tutorial.index - 1);
-    renderTutorialGuide();
-  });
-  els.tutorialNextBtn?.addEventListener("click", () => {
-    if (!state.tutorial.active) return;
-    const steps = getTutorialSteps();
-    if (state.tutorial.index >= steps.length - 1) {
-      closeTutorial(true);
-      return;
-    }
-    state.tutorial.index += 1;
-    renderTutorialGuide();
-  });
-  els.tutorialGuideSkipBtn?.addEventListener("click", () => {
-    closeTutorial(true);
-  });
-  els.tutorialModal?.addEventListener("click", (event) => {
-    if (event.target === els.tutorialModal) {
-      closeTutorial(true);
-    }
-  });
-
-  els.newCardBtn?.addEventListener("click", () => {
-    syncActiveCardFromState();
-    const nextIndex = state.cards.length + 1;
-    const nextName = `Card ${nextIndex}`;
-    const design = buildStarterDesignFromCurrent(nextName);
-    const record = {
-      id: uuid(),
-      name: nextName,
-      design,
-      selectedTileId: design.tiles[0]?.id || null,
-    };
-    state.cards.push(record);
-    activateCard(record.id);
-    setStatus("New card added to session.");
-  });
-
-  els.duplicateCardBtn?.addEventListener("click", () => {
-    const active = getActiveCardRecord();
-    if (!active) return;
-    syncActiveCardFromState();
-    const copy = cloneDesign(active.design);
-    const copyName = `${active.name || "Card"} (Copy)`;
-    copy.name = copyName;
-    const record = {
-      id: uuid(),
-      name: copyName,
-      design: copy,
-      selectedTileId: active.selectedTileId || copy.tiles[0]?.id || null,
-    };
-    state.cards.push(record);
-    activateCard(record.id);
-    setStatus("Card duplicated.");
-  });
-
-  els.deleteCardBtn?.addEventListener("click", () => {
-    if (state.cards.length <= 1) return;
-    const active = getActiveCardRecord();
-    if (!active) return;
-    const ok = window.confirm(`Delete "${active.name || "this card"}"?`);
-    if (!ok) return;
-    const activeIndex = state.cards.findIndex((card) => card.id === active.id);
-    if (activeIndex < 0) return;
-    state.cards.splice(activeIndex, 1);
-    const nextIndex = Math.max(0, activeIndex - 1);
-    const next = state.cards[nextIndex] || state.cards[0];
-    if (next) {
-      activateCard(next.id);
-      setStatus("Card deleted.");
-    }
-  });
-
-  els.cardSizeSelect.addEventListener("change", () => {
-    state.design.card.preset = els.cardSizeSelect.value;
-    if (els.cardSizeSelect.value === "custom") {
-      els.customSizeWrap.hidden = false;
-      state.design.card.widthIn = Number(els.customWidth.value || 2.5);
-      state.design.card.heightIn = Number(els.customHeight.value || 3.5);
-    } else {
-      els.customSizeWrap.hidden = true;
-      const preset = cardSizes[els.cardSizeSelect.value] || cardSizes.poker;
-      state.design.card.widthIn = preset.w;
-      state.design.card.heightIn = preset.h;
-    }
-    state.design.tiles.forEach(constrainTile);
-    render();
-  });
-
-  [els.customWidth, els.customHeight].forEach((input) => {
-    input.addEventListener("input", () => {
-      if (els.cardSizeSelect.value !== "custom") return;
-      state.design.card.widthIn = clamp(Number(els.customWidth.value || 2.5), 1, 10);
-      state.design.card.heightIn = clamp(Number(els.customHeight.value || 3.5), 1, 14);
-      state.design.tiles.forEach(constrainTile);
-      render();
-    });
-  });
-
-  els.snapToggle.addEventListener("change", () => {
-    state.design.snapEnabled = els.snapToggle.checked;
-    render();
-  });
-
-  els.gridStepInput.addEventListener("input", () => {
-    state.design.gridStepIn = clamp(Number(els.gridStepInput.value || 0.005), 0.005, 0.5);
-  });
-
-  els.showSafeBorder.addEventListener("change", () => {
-    state.design.showSafeBorder = els.showSafeBorder.checked;
-    render();
-  });
-
-  els.tilePalette.querySelectorAll("button").forEach((btn) => {
-    btn.addEventListener("dragstart", (event) => {
-      state.dragTileType = btn.dataset.tileType;
-      event.dataTransfer.effectAllowed = "copy";
-      event.dataTransfer.setData("text/plain", state.dragTileType);
-    });
-  });
-
-  els.cardStage.addEventListener("dragover", (event) => {
-    event.preventDefault();
-  });
-
-  els.cardStage.addEventListener("pointerdown", (event) => {
-    if (event.target === els.cardStage) {
-      state.selectedTileId = null;
-      render();
-    }
-  });
-
-  els.cardStage.addEventListener("drop", (event) => {
-    event.preventDefault();
-    const type = event.dataTransfer.getData("text/plain") || state.dragTileType;
-    if (!type) return;
-    const tile = createTile(type);
-    if (type === "card-background") {
-      state.design.tiles.unshift(tile);
-    } else {
-      state.design.tiles.push(tile);
-    }
-    state.selectedTileId = tile.id;
-    render();
-    setStatus(`${tile.label} added at center.`);
-  });
-
-  els.tileNameInput.addEventListener("input", () => {
-    const tile = getSelectedTile();
-    if (!tile) return;
-    tile.label = els.tileNameInput.value;
-    render();
-  });
-
-  els.tileTransparentBgInput.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile) return;
-    tile.transparentBg = els.tileTransparentBgInput.checked;
-    render();
-  });
-
-  els.tileShowOutlineInput.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile) return;
-    tile.showOutline = els.tileShowOutlineInput.checked;
-    render();
-  });
-
-  els.titleBannerEnabled.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "title") return;
-    tile.titleBanner = {
-      enabled: els.titleBannerEnabled.checked,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    };
-    tile.titleBanner.enabled = els.titleBannerEnabled.checked;
-    updateTitleBannerControls(tile);
-    render();
-  });
-
-  els.titleBannerMode.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "title") return;
-    tile.titleBanner = {
-      enabled: false,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    };
-    tile.titleBanner.mode = els.titleBannerMode.value;
-    updateTitleBannerControls(tile);
-    render();
-  });
-
-  els.titleBannerColor.addEventListener("input", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "title") return;
-    tile.titleBanner = {
-      enabled: false,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    };
-    tile.titleBanner.color = els.titleBannerColor.value;
-    render();
-  });
-
-  els.titleBannerGradient.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "title") return;
-    tile.titleBanner = {
-      enabled: false,
-      mode: "gradient",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    };
-    tile.titleBanner.gradient = els.titleBannerGradient.value;
-    render();
-  });
-
-  els.titleBannerPaddingMm.addEventListener("input", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "title") return;
-    tile.titleBanner = {
-      enabled: false,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    };
-    tile.titleBanner.paddingMm = clamp(Number(els.titleBannerPaddingMm.value || 0.5), 0, 10);
-    render();
-  });
-
-  els.titleBannerUploadBtn.addEventListener("click", () => {
-    els.titleBannerFileInput.click();
-  });
-
-  els.titleBannerFileInput.addEventListener("change", async () => {
-    const tile = getSelectedTile();
-    const file = els.titleBannerFileInput.files?.[0];
-    els.titleBannerFileInput.value = "";
-    if (!tile || tile.type !== "title" || !file) return;
-    try {
-      const dataUrl = await validateAndReadImage(file);
-      tile.titleBanner = {
-        enabled: true,
-        mode: "image",
-        color: "#1f2430",
-        gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-        imageDataUrl: "",
-        paddingMm: 0.5,
-        ...(tile.titleBanner || {}),
-      };
-      tile.titleBanner.enabled = true;
-      tile.titleBanner.mode = "image";
-      tile.titleBanner.imageDataUrl = dataUrl;
-      updateTitleBannerControls(tile);
-      render();
-      setStatus("Title banner image uploaded.");
-    } catch (error) {
-      setStatus(error.message);
-    }
-  });
-
-  [els.tileXInput, els.tileYInput, els.tileWInput, els.tileHInput].forEach((input) => {
-    input.addEventListener("input", () => {
-      const tile = getSelectedTile();
-      if (!tile) return;
-      clampTileInputs(tile);
-      render();
-    });
-  });
-
-  els.tileRotationSelect.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile) return;
-    tile.rotationDeg = normalizeRotation(els.tileRotationSelect.value);
-    render();
-  });
-
-  els.deleteTileBtn.addEventListener("click", () => {
-    if (!state.selectedTileId) return;
-    state.design.tiles = state.design.tiles.filter((t) => t.id !== state.selectedTileId);
-    state.selectedTileId = null;
-    render();
-  });
-
-  const styleInputs = [
-    els.fontFamilySelect,
-    els.fontSizeInput,
-    els.lineHeightInput,
-    els.textAlignSelect,
-    els.textFlowModeSelect,
-    els.textVAlignSelect,
-    els.letterSpacingInput,
-    els.textColorInput,
-    els.bgColorInput,
-  ];
-  styleInputs.forEach((input) => {
-    input.addEventListener("input", () => {
-      const tile = getSelectedTile();
-      if (!tile || !isTextTile(tile)) return;
-      if (input === els.bgColorInput) {
-        tile.transparentBg = false;
-      }
-      tile.style = {
-        ...tile.style,
-        fontFamily: els.fontFamilySelect.value,
-        fontSize: Number(els.fontSizeInput.value || 16),
-        lineHeight: Number(els.lineHeightInput.value || 1.2),
-        textAlign: els.textAlignSelect.value || "left",
-        textFlowMode: els.textFlowModeSelect.value || "rotated",
-        verticalAlign: els.textVAlignSelect.value || "middle",
-        letterSpacing: Number(els.letterSpacingInput.value || 0),
-        color: els.textColorInput.value,
-        background: els.bgColorInput.value,
-      };
-      render();
-    });
-  });
-
-  els.toolbarButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const cmd = btn.dataset.cmd;
-      const tile = getSelectedTile();
-      if (!tile || !isTextTile(tile)) return;
-
-      const editable = state.liveEditable || getEditableForSelectedTile();
-      if (!editable) return;
-      editable.focus();
-      document.execCommand(cmd, false, null);
-      tile.textHtml = editable.innerHTML;
-      persistDraft();
-    });
-  });
-
-  els.uploadImageBtn.addEventListener("click", () => {
-    els.imageFileInput.click();
-  });
-
-  els.imageFillMode.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile || (tile.type !== "main-image" && tile.type !== "card-background" && tile.type !== "icon")) return;
-    tile.imageFill = {
-      ...getDefaultImageFill(tile.type),
-      ...(tile.imageFill || {}),
-      mode: els.imageFillMode.value,
-    };
-    if (tile.imageFill.mode === "color" || tile.imageFill.mode === "gradient") {
-      tile.transparentBg = false;
-    }
-    updateImageFillControls(tile);
-    render();
-  });
-
-  els.imageFillColor.addEventListener("input", () => {
-    const tile = getSelectedTile();
-    if (!tile || (tile.type !== "main-image" && tile.type !== "card-background" && tile.type !== "icon")) return;
-    tile.imageFill = {
-      ...getDefaultImageFill(tile.type),
-      ...(tile.imageFill || {}),
-      color: els.imageFillColor.value,
-    };
-    render();
-  });
-
-  els.imageFillGradient.addEventListener("change", () => {
-    const tile = getSelectedTile();
-    if (!tile || (tile.type !== "main-image" && tile.type !== "card-background" && tile.type !== "icon")) return;
-    tile.imageFill = {
-      ...getDefaultImageFill(tile.type),
-      ...(tile.imageFill || {}),
-      gradient: els.imageFillGradient.value,
-    };
-    render();
-  });
-
-  els.imageFileInput.addEventListener("change", async () => {
-    const tile = getSelectedTile();
-    const file = els.imageFileInput.files?.[0];
-    els.imageFileInput.value = "";
-    if (!tile || !file) return;
-    try {
-      const dataUrl = await validateAndReadImage(file);
-      tile.imageDataUrl = dataUrl;
-      tile.imageFill = {
-        ...getDefaultImageFill(tile.type),
-        ...(tile.imageFill || {}),
-        mode: "image",
-      };
-      updateImageFillControls(tile);
-      render();
-      setStatus("Image uploaded.");
-    } catch (error) {
-      setStatus(error.message);
-    }
-  });
-
-  els.iconValueInput.addEventListener("input", () => {
-    const tile = getSelectedTile();
-    if (!tile || tile.type !== "icon") return;
-    tile.icon.value = els.iconValueInput.value;
-    render();
-  });
-
+/* global PDFLib, html2canvas, PrototyperCore, PROTOTYPER_ICONS */
+(() => {
+  "use strict";
+  const C = PrototyperCore;
+  const icons = Array.isArray(window.PROTOTYPER_ICONS) ? window.PROTOTYPER_ICONS : [];
+  const $ = (selector) => document.querySelector(selector);
+  const $$ = (selector) => [...document.querySelectorAll(selector)];
+  const byId = (id) => document.getElementById(id);
+  const els = {};
   [
-    els.iconValueColor,
-    els.iconValueSize,
-    els.iconOutlineColor,
-    els.iconOutlineWidth,
-    els.iconOffsetX,
-    els.iconOffsetY,
-  ].forEach((input) => {
-    input.addEventListener("input", () => {
-      const tile = getSelectedTile();
-      if (!tile || tile.type !== "icon") return;
-      tile.icon.position = "overlay";
-      tile.icon.valueColor = els.iconValueColor.value;
-      tile.icon.valueSize = Number(els.iconValueSize.value || 60);
-      tile.icon.outlineColor = els.iconOutlineColor.value;
-      tile.icon.outlineWidth = Number(els.iconOutlineWidth.value || 2);
-      tile.icon.offsetX = Number(els.iconOffsetX.value || 0);
-      tile.icon.offsetY = Number(els.iconOffsetY.value || 0);
-      render();
+    "drawer","card-stage","card-wrap","canvas-viewport","selection-box","guide-x","guide-y","status",
+    "undo-btn","redo-btn","quick-card-name","card-dimensions","zoom-out","zoom-in","zoom-fit",
+    "empty-inspector","selection-inspector","element-kind","element-label","delete-element",
+    "text-content-control","element-text","style-presets","text-essentials","text-align","text-color",
+    "panel-color","image-essentials","icon-essentials","choose-asset-btn","replace-upload-btn",
+    "icon-tint","badge-color","value-enabled","icon-value","icon-value-row","x-input","y-input",
+    "w-input","h-input","rotation-input","text-more","font-family","font-size","frame-toggle",
+    "transparent-toggle","artwork-appearance","fill-mode","fill-color","artwork-opacity",
+    "artwork-opacity-val","stroke-color","stroke-width","stroke-width-val","asset-search","category-chips","asset-grid","asset-empty","icon-count",
+    "upload-image-btn","image-file","asset-license-btn","cards-list","layers-list","new-card-btn","card-name","card-size",
+    "custom-size","card-width","card-height","snap-toggle","safe-toggle","save-json-btn","load-json-btn",
+    "project-file","start-over-btn","export-scope","preview-btn","preview-top-btn","png-btn","pdf-btn",
+    "pdf-page","pdf-layout","pdf-copies","template-dialog","guide-after-template","restore-dialog",
+    "discard-draft","restore-draft","license-dialog","tutorial-btn","tutorial-layer","tutorial-spotlight",
+    "tutorial-callout","tutorial-progress","tutorial-title","tutorial-copy","tutorial-skip","tutorial-back",
+    "tutorial-next","preview-dialog","preview-title","preview-image","preview-download","toast-region",
+    "related-btn","related-menu","theme-btn","feedback-btn"
+  ].forEach((id) => { els[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = byId(id); });
+
+  const state = {
+    cards: [], activeCardId: null, design: null, selectedTileId: null, placingType: null,
+    zoom: 1, fitScale: 1, drag: null, assetCategory: "All", assetQuery: "",
+    history: C.createHistory(80), suspendHistory: false, tutorialIndex: 0, tutorialActive: false,
+  };
+  const activeCard = () => state.cards.find((card) => card.id === state.activeCardId);
+  const selectedTile = () => state.design?.tiles.find((tile) => tile.id === state.selectedTileId);
+  const isText = (tile) => tile && ["title","effect","flavor"].includes(tile.type);
+  const isImage = (tile) => tile && ["main-image","card-background","icon"].includes(tile.type);
+  const pxPerIn = () => els.cardStage.clientWidth / state.design.card.widthIn;
+  const toPx = (value) => value * pxPerIn();
+  const fromPx = (value) => value / pxPerIn();
+  const typeName = (type) => ({
+    title:"Title",effect:"Rules",flavor:"Flavor","main-image":"Artwork",icon:"Icon / value","card-background":"Background",
+  })[type] || "Element";
+  const safeFile = (name) => String(name || "card").trim().replace(/[^a-z0-9-_]+/gi,"-").replace(/-+/g,"-").replace(/^-|-$/g,"") || "card";
+  const toast = (message) => {
+    els.status.textContent = message;
+    const node = document.createElement("div"); node.className = "toast"; node.textContent = message;
+    els.toastRegion.append(node); setTimeout(() => node.remove(), 2600);
+  };
+
+  function snapshot() {
+    syncActive();
+    return C.clone({ cards: state.cards, activeCardId: state.activeCardId, selectedTileId: state.selectedTileId });
+  }
+  function restore(snapshotValue) {
+    state.cards = C.clone(snapshotValue.cards); state.activeCardId = snapshotValue.activeCardId;
+    const card = activeCard() || state.cards[0]; state.activeCardId = card.id;
+    state.design = C.clone(card.design); state.selectedTileId = snapshotValue.selectedTileId;
+    renderAll(); scheduleDraft();
+  }
+  function pushHistory(before, after) {
+    if (state.suspendHistory || JSON.stringify(before) === JSON.stringify(after)) return;
+    state.history.push({ undo: () => restore(before), redo: () => restore(after) });
+    updateHistoryButtons();
+  }
+  function mutate(fn, options = {}) {
+    const before = options.noHistory ? null : snapshot();
+    fn(); syncActive(); renderAll();
+    if (before) pushHistory(before, snapshot());
+    scheduleDraft();
+  }
+  function syncActive() {
+    const card = activeCard();
+    if (!card || !state.design) return;
+    card.name = state.design.name; card.design = C.clone(state.design); card.selectedTileId = state.selectedTileId;
+    state.design.updatedAt = new Date().toISOString();
+  }
+  function activateCard(id) {
+    syncActive();
+    const card = state.cards.find((item) => item.id === id); if (!card) return;
+    state.activeCardId = id; state.design = C.clone(card.design);
+    state.selectedTileId = state.design.tiles.some((tile) => tile.id === card.selectedTileId) ? card.selectedTileId : null;
+    renderAll(); scheduleDraft();
+  }
+
+  function createProject(templateId = "ability") {
+    const design = C.makeTemplate(templateId);
+    const id = C.uid();
+    state.cards = [{ id, name: design.name, design, selectedTileId: design.tiles[1]?.id || design.tiles[0]?.id || null }];
+    state.activeCardId = id; state.design = C.clone(design); state.selectedTileId = state.cards[0].selectedTileId;
+    state.history.clear(); renderAll(); scheduleDraft();
+  }
+  function addCard(templateId) {
+    mutate(() => {
+      const design = C.makeTemplate(templateId, state.design?.card || {});
+      design.name = `${templateId[0].toUpperCase()}${templateId.slice(1)} Card ${state.cards.length + 1}`;
+      const card = { id: C.uid(), name: design.name, design, selectedTileId: design.tiles[1]?.id || null };
+      state.cards.push(card); syncActive(); state.activeCardId = card.id; state.design = C.clone(design);
+      state.selectedTileId = card.selectedTileId;
     });
-  });
-
-  els.projectName.addEventListener("input", () => {
-    state.design.name = els.projectName.value || "Untitled Design";
-    const active = getActiveCardRecord();
-    if (active) active.name = state.design.name;
-    renderCardsPanel();
-    persistDraft();
-  });
-
-  els.saveProjectBtn.addEventListener("click", () => {
-    downloadProjectJson();
-  });
-
-  els.loadProjectBtn.addEventListener("click", () => {
-    els.projectFileInput.click();
-  });
-
-  els.projectFileInput.addEventListener("change", async () => {
-    const file = els.projectFileInput.files?.[0];
-    els.projectFileInput.value = "";
-    if (!file) return;
-    try {
-      const raw = await file.text();
-      const parsed = JSON.parse(raw);
-      loadDesignFromData(parsed, true);
-      setStatus("Project JSON imported.");
-    } catch (error) {
-      setStatus("Invalid JSON file.");
-    }
-  });
-
-  els.resetProjectBtn.addEventListener("click", () => {
-    const ok = window.confirm("Start over with a blank project? Unsaved changes will be lost.");
-    if (!ok) return;
-    resetProject({ preserveSettings: true });
-  });
-
-  els.exportPngBtn.addEventListener("click", async () => {
-    try {
-      const scope = els.exportScopeSelect?.value || "active";
-      if (scope === "all") {
-        const cards = await captureExportCards("all");
-        if (!cards.length) {
-          setStatus("No cards available for PNG export.");
-          return;
-        }
-        cards.forEach((card, index) => {
-          const filename = `${String(index + 1).padStart(2, "0")}-${safeFile(card.name || `card-${index + 1}`)}.png`;
-          window.setTimeout(() => {
-            triggerDownload(card.dataUrl, filename);
-          }, index * 120);
-        });
-        setStatus(`${cards.length} PNG files queued for download.`);
-      } else {
-        const png = await captureCardPngDataUrl();
-        triggerDownload(png, `${safeFile(state.design.name || "card")}.png`);
-        setStatus("PNG exported.");
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus(`PNG export failed: ${error?.message || "Unknown error."}`);
-    }
-  });
-
-  els.previewCardBtn?.addEventListener("click", async () => {
-    try {
-      const png = await captureCardPngDataUrl();
-      if (els.previewImage) {
-        els.previewImage.src = png;
-      }
-      if (els.previewDownloadBtn) {
-        els.previewDownloadBtn.onclick = () => {
-          const a = document.createElement("a");
-          a.href = png;
-          a.download = `${safeFile(state.design.name || "card")}.png`;
-          a.click();
-        };
-      }
-      if (els.previewModal) {
-        els.previewModal.hidden = false;
-      }
-      setStatus("Preview ready.");
-    } catch (error) {
-      console.error(error);
-      setStatus(`Preview failed: ${error?.message || "Unknown error."}`);
-    }
-  });
-
-  els.exportPdfBtn.addEventListener("click", async () => {
-    try {
-      await exportPdf();
-      setStatus("PDF exported.");
-    } catch (error) {
-      console.error(error);
-      setStatus("PDF export failed.");
-    }
-  });
-}
-
-async function validateAndReadImage(file) {
-  if (!["image/png", "image/jpeg"].includes(file.type)) {
-    throw new Error("Only PNG and JPG images are allowed.");
   }
-  if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error("Image too large. Max file size is 2.5 MB.");
+
+  function updateGeometry() {
+    const { widthIn, heightIn } = state.design.card;
+    const availableW = Math.max(280, els.canvasViewport.clientWidth - 70);
+    const availableH = Math.max(350, els.canvasViewport.clientHeight - 70);
+    const baseWidth = Math.min(640, availableW, availableH * widthIn / heightIn);
+    state.fitScale = baseWidth / 500;
+    const width = 500 * state.fitScale * state.zoom;
+    els.cardWrap.style.width = `${width}px`; els.cardWrap.style.aspectRatio = `${widthIn}/${heightIn}`;
+    els.cardDimensions.textContent = `${widthIn.toFixed(2)} × ${heightIn.toFixed(2)} in`;
+    els.zoomFit.textContent = state.zoom === 1 ? "Fit" : `${Math.round(state.zoom * 100)}%`;
   }
-  const dataUrl = await readFileAsDataUrl(file);
-  const img = await loadImage(dataUrl);
-  if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
-    throw new Error("Image dimensions exceed 3000x3000 limit.");
+  function elementStyles(node, tile) {
+    node.style.left = `${toPx(tile.xIn)}px`; node.style.top = `${toPx(tile.yIn)}px`;
+    node.style.width = `${toPx(tile.wIn)}px`; node.style.height = `${toPx(tile.hIn)}px`;
+    node.style.transform = `rotate(${tile.rotationDeg || 0}deg)`;
+    node.style.zIndex = String(state.design.tiles.indexOf(tile) + 1);
+    node.classList.toggle("design-frame", tile.showOutline === true);
   }
-  return dataUrl;
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-function triggerDownload(url, filename) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-}
-
-async function captureExportCards(scope, options = {}) {
-  const { rotateForLayout = false, layoutKey = "" } = options;
-  syncActiveCardFromState();
-  const cardIds =
-    scope === "all"
-      ? state.cards.map((card) => card.id)
-      : state.activeCardId
-        ? [state.activeCardId]
-        : [];
-  if (!cardIds.length) return [];
-
-  const originalCardId = state.activeCardId;
-  const previousSuspend = state.suspendDraftSync;
-  const out = [];
-  state.suspendDraftSync = true;
-  try {
-    for (const cardId of cardIds) {
-      if (cardId !== state.activeCardId) activateCard(cardId);
-      const active = getActiveCardRecord();
-      let png = await captureCardPngDataUrl();
-      if (rotateForLayout && layoutKey === "gutterfold") {
-        png = await rotateDataUrlClockwise(png);
+  function renderTile(tile) {
+    const node = document.createElement("div");
+    node.className = `card-element ${tile.type}`; node.dataset.tileId = tile.id; elementStyles(node, tile);
+    if (isText(tile)) {
+      node.classList.add("text-element");
+      node.innerHTML = tile.textHtml || "";
+      const style = tile.style || C.defaultStyle(tile.type);
+      node.style.fontFamily = style.fontFamily; node.style.fontSize = `${toPx((style.fontSizePt || 10) / 72)}px`;
+      node.style.fontWeight = style.fontWeight || 500; node.style.lineHeight = style.lineHeight || 1.2;
+      node.style.letterSpacing = `${style.letterSpacing || 0}px`; node.style.textAlign = style.textAlign || "left";
+      node.style.color = style.color || "#111827"; node.style.background = tile.transparentBg ? "transparent" : style.background || "#fff";
+      node.style.justifyContent = ({top:"flex-start",middle:"center",bottom:"flex-end"})[style.verticalAlign] || "center";
+      node.addEventListener("dblclick", (event) => beginTextEdit(event, node, tile));
+    } else if (tile.type === "icon") {
+      node.classList.add("icon-element"); node.classList.toggle("badge", tile.icon?.badgeEnabled !== false);
+      node.style.setProperty("--badge", tile.icon?.badgeColor || "#1769ff");
+      if (tile.imageDataUrl) {
+        const glyph = document.createElement("div"); glyph.className = "icon-glyph";
+        glyph.style.setProperty("--icon-src", `url("${tile.imageDataUrl}")`);
+        glyph.style.setProperty("--icon-tint", tile.icon?.tint || "#fff"); node.append(glyph);
       }
-      out.push({
-        cardId,
-        name: active?.name || state.design.name || "Card",
-        dataUrl: png,
+      if (tile.icon?.valueEnabled) {
+        const value = document.createElement("span"); value.className = "icon-value"; value.textContent = tile.icon.value || "1";
+        value.style.fontSize = `${toPx((tile.icon.valueSizePt || 11) / 72)}px`; node.append(value);
+      }
+    } else {
+      node.classList.add("image-element");
+      const fill = tile.imageFill || {};
+      const layers = [];
+      if (tile.imageDataUrl) layers.push(`url("${tile.imageDataUrl}")`);
+      if (fill.mode === "gradient") layers.push(fill.gradient || "linear-gradient(#fff,#e9eef7)");
+      node.style.backgroundImage = layers.join(",");
+      node.style.backgroundColor = fill.mode === "color" ? fill.color : "transparent";
+      node.style.backgroundSize = tile.imageDataUrl ? (fill.fit || (tile.type === "card-background" ? "cover" : "contain")) : "cover";
+      node.style.backgroundRepeat = "no-repeat"; node.style.backgroundPosition = "center";
+      if (tile.opacity != null && tile.opacity < 1) node.style.opacity = tile.opacity;
+      if ((tile.strokeWidth || 0) > 0) {
+        node.style.border = `${tile.strokeWidth}px solid ${tile.strokeColor || "#000"}`;
+        node.style.boxSizing = "border-box";
+      }
+    }
+    if (tile.hidden) node.hidden = true;
+    node.addEventListener("pointerdown", (event) => beginMove(event, tile));
+    return node;
+  }
+  function renderStage() {
+    updateGeometry(); els.cardStage.replaceChildren();
+    state.design.tiles.forEach((tile) => els.cardStage.append(renderTile(tile)));
+    if (state.design.showSafeBorder) {
+      const safe = document.createElement("div"); safe.className = "safe-area";
+      safe.style.inset = `${toPx(C.SAFE_BORDER_IN)}px`; els.cardStage.append(safe);
+    }
+    updateSelectionBox();
+  }
+  function updateSelectionBox() {
+    const tile = selectedTile(); const node = tile && els.cardStage.querySelector(`[data-tile-id="${tile.id}"]`);
+    if (!tile || !node || tile.hidden) { els.selectionBox.hidden = true; return; }
+    els.selectionBox.hidden = false; elementStyles(els.selectionBox, tile);
+  }
+
+  function renderCards() {
+    els.cardsList.replaceChildren();
+    state.cards.forEach((card, index) => {
+      const row = document.createElement("div"); row.className = `card-row${card.id === state.activeCardId ? " active" : ""}`;
+      const button = document.createElement("button"); button.textContent = card.name || `Card ${index + 1}`;
+      button.onclick = () => activateCard(card.id);
+      const actions = document.createElement("div"); actions.className = "mini-actions";
+      const copy = document.createElement("button"); copy.textContent = "⧉"; copy.title = "Duplicate";
+      copy.onclick = () => mutate(() => {
+        const design = C.clone(card.design); design.name = `${card.name} Copy`;
+        const duplicate = { id:C.uid(), name:design.name, design, selectedTileId:card.selectedTileId };
+        state.cards.splice(index + 1, 0, duplicate); state.activeCardId = duplicate.id; state.design = C.clone(design); state.selectedTileId = duplicate.selectedTileId;
       });
-    }
-  } finally {
-    if (originalCardId && originalCardId !== state.activeCardId) {
-      activateCard(originalCardId);
-    }
-    state.suspendDraftSync = previousSuspend;
+      const del = document.createElement("button"); del.textContent = "×"; del.title = "Delete"; del.disabled = state.cards.length === 1;
+      del.onclick = () => {
+        if (state.cards.length === 1 || !confirm(`Delete "${card.name}"?`)) return;
+        mutate(() => { state.cards.splice(index,1); const next = state.cards[Math.max(0,index - 1)]; state.activeCardId = next.id; state.design = C.clone(next.design); state.selectedTileId = next.selectedTileId; });
+      };
+      actions.append(copy,del); row.append(button,actions); els.cardsList.append(row);
+    });
   }
-  return out;
-}
-
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-function normalizeDesignData(data = {}, fallbackName = "Imported Design") {
-  const preset = data.card?.preset || "poker";
-  const presetSize = cardSizes[preset] || cardSizes.poker;
-  const normalized = {
-    name: data.name || fallbackName,
-    card: {
-      preset,
-      widthIn: Number(data.card?.widthIn || presetSize.w),
-      heightIn: Number(data.card?.heightIn || presetSize.h),
-    },
-    snapEnabled: data.snapEnabled !== false,
-    gridStepIn: clamp(Number(data.gridStepIn || 0.005), 0.005, 0.5),
-    showSafeBorder: data.showSafeBorder !== false,
-    tiles: [],
-    updatedAt: data.updatedAt || new Date().toISOString(),
-  };
-
-  const previousDesign = state.design;
-  state.design = {
-    ...state.design,
-    card: { ...normalized.card },
-  };
-  normalized.tiles = (data.tiles || []).map((tile) => ({
-    ...createTile(tile.type || "effect"),
-    ...tile,
-    rotationDeg: normalizeRotation(tile.rotationDeg ?? 0),
-    hidden: tile.hidden === true,
-    showOutline: tile.showOutline !== false,
-    transparentBg:
-      tile.transparentBg != null
-        ? tile.transparentBg
-        : tile.type === "card-background" || tile.type === "main-image" || tile.type === "icon",
-    style: {
-      ...getDefaultTextStyle(tile.type || "effect"),
-      ...(tile.style || {}),
-    },
-    imageFill: {
-      ...getDefaultImageFill(tile.type || "effect"),
-      ...(tile.imageFill || {}),
-    },
-    titleBanner: {
-      enabled: false,
-      mode: "color",
-      color: "#1f2430",
-      gradient: "linear-gradient(90deg, #1f2937, #3b82f6)",
-      imageDataUrl: "",
-      paddingMm: 0.5,
-      ...(tile.titleBanner || {}),
-    },
-    icon: {
-      value: "1",
-      position: "overlay",
-      valueColor: "#ffffff",
-      valueSize: 60,
-      outlineColor: "#111111",
-      outlineWidth: 2,
-      offsetX: 0,
-      offsetY: 0,
-      ...(tile.icon || {}),
-    },
-  }));
-  state.design = previousDesign;
-  return normalized;
-}
-
-function buildProjectPayload() {
-  syncActiveCardFromState();
-  return {
-    version: 2,
-    format: "martins-card-prototyper-project",
-    savedAt: new Date().toISOString(),
-    activeCardId: state.activeCardId,
-    cards: state.cards.map((card, index) => ({
-      id: card.id || uuid(),
-      name: getCardDisplayName(card, index),
-      selectedTileId: card.selectedTileId || card.design?.tiles?.[0]?.id || null,
-      design: cleanDesign(card.design || buildStarterDesignFromCurrent(`Card ${index + 1}`)),
-    })),
-  };
-}
-
-function downloadProjectJson() {
-  const payload = buildProjectPayload();
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${safeFile(state.design.name || "design")}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  setStatus("Project JSON downloaded.");
-}
-
-function persistDraft() {
-  if (state.suspendDraftSync) return;
-  syncActiveCardFromState();
-  state.design.updatedAt = new Date().toISOString();
-}
-
-function loadDraft() {
-  return false;
-}
-
-function cleanDesign(design) {
-  return JSON.parse(JSON.stringify(design));
-}
-
-function loadDesignFromData(data, resetProjectId) {
-  if (!data || typeof data !== "object") {
-    throw new Error("Invalid project JSON.");
+  function renderLayers() {
+    els.layersList.replaceChildren();
+    [...state.design.tiles].reverse().forEach((tile) => {
+      const index = state.design.tiles.indexOf(tile);
+      const row = document.createElement("div"); row.className = `layer-row${tile.id === state.selectedTileId ? " active" : ""}`;
+      const button = document.createElement("button"); button.textContent = tile.label || typeName(tile.type);
+      button.onclick = () => { state.selectedTileId = tile.id; renderAll(); };
+      const actions = document.createElement("div"); actions.className = "mini-actions";
+      [["↑",1],["↓",-1]].forEach(([label,direction]) => {
+        const move = document.createElement("button"); move.textContent = label;
+        move.disabled = index + direction < 0 || index + direction >= state.design.tiles.length;
+        move.onclick = () => mutate(() => {
+          const other = index + direction; [state.design.tiles[index],state.design.tiles[other]] = [state.design.tiles[other],state.design.tiles[index]];
+        }); actions.append(move);
+      });
+      const eye = document.createElement("button"); eye.textContent = tile.hidden ? "○" : "●"; eye.title = "Toggle visibility";
+      eye.onclick = () => mutate(() => { tile.hidden = !tile.hidden; }); actions.append(eye);
+      row.append(button,actions); els.layersList.append(row);
+    });
   }
-  const hasMultiCards = Array.isArray(data?.cards);
-  if (hasMultiCards) {
-    const normalizedCards = data.cards
-      .map((entry, index) => {
-        const base = entry?.design && typeof entry.design === "object" ? entry.design : entry || {};
-        const name = String(entry?.name || base.name || `Card ${index + 1}`).trim();
-        const design = normalizeDesignData(base, name || `Card ${index + 1}`);
-        design.name = name || design.name;
-        const cardId = entry?.id || uuid();
-        const selectedTileId = entry?.selectedTileId;
-        const hasSelected = design.tiles.some((tile) => tile.id === selectedTileId);
-        return {
-          id: cardId,
-          name: design.name,
-          design,
-          selectedTileId: hasSelected ? selectedTileId : design.tiles[0]?.id || null,
-        };
-      })
-      .filter(Boolean);
-
-    if (normalizedCards.length === 0) {
-      resetProject({ preserveSettings: true });
-      return;
+  const STYLE_PRESETS = {
+    title: [
+      ["Clean Band","clean-band",{background:"#17233d",color:"#f8fbff",textAlign:"center"}],
+      ["Accent Band","accent-band",{background:"#1769ff",color:"#ffffff",textAlign:"left"}],
+      ["Minimal","minimal",{background:"#ffffff",color:"#17233d",textAlign:"left",transparent:true}],
+    ],
+    effect: [
+      ["Paper","paper",{background:"#f8fafc",color:"#202839"}],
+      ["Soft Panel","soft-panel",{background:"#e8efff",color:"#17233d"}],
+      ["Transparent","transparent",{background:"#ffffff",color:"#202839",transparent:true}],
+    ],
+    flavor: [
+      ["Paper","paper",{background:"#fffaf1",color:"#5d4935"}],
+      ["Soft Panel","soft-panel",{background:"#f0e9dc",color:"#5d4935"}],
+      ["Transparent","transparent",{background:"#ffffff",color:"#4b5565",transparent:true}],
+    ],
+  };
+  function renderInspector() {
+    const tile = selectedTile(); els.emptyInspector.hidden = Boolean(tile); els.selectionInspector.hidden = !tile;
+    if (!tile) return;
+    els.elementKind.textContent = typeName(tile.type); els.elementLabel.value = tile.label || typeName(tile.type);
+    els.xInput.value = tile.xIn.toFixed(2); els.yInput.value = tile.yIn.toFixed(2);
+    els.wInput.value = tile.wIn.toFixed(2); els.hInput.value = tile.hIn.toFixed(2);
+    els.rotationInput.value = Math.round(tile.rotationDeg || 0); els.frameToggle.checked = tile.showOutline === true;
+    els.transparentToggle.checked = Boolean(tile.transparentBg);
+    const text = isText(tile); els.textContentControl.hidden = !text; els.textEssentials.hidden = !text;
+    els.textMore.hidden = !text; els.imageEssentials.hidden = !isImage(tile);
+    if (text) {
+      els.elementText.value = stripHtml(tile.textHtml); els.textColor.value = tile.style.color || "#202839";
+      els.panelColor.value = tile.style.background || "#ffffff"; els.fontFamily.value = tile.style.fontFamily;
+      els.fontSize.value = tile.style.fontSizePt || 10;
+      $$("#text-align button").forEach((button) => button.classList.toggle("active", button.dataset.value === tile.style.textAlign));
+      els.stylePresets.replaceChildren();
+      (STYLE_PRESETS[tile.type] || STYLE_PRESETS.effect).forEach(([label,id,values]) => {
+        const button = document.createElement("button"); button.textContent = label;
+        button.classList.toggle("active", tile.style.preset === id);
+        button.onclick = () => mutate(() => {
+          tile.style = {...tile.style,...values,preset:id}; if (values.transparent != null) tile.transparentBg = values.transparent;
+        }); els.stylePresets.append(button);
+      });
+    } else {
+      els.stylePresets.replaceChildren();
     }
-
-    state.cards = normalizedCards;
-    state.activeCardId =
-      normalizedCards.find((card) => card.id === data.activeCardId)?.id || normalizedCards[0].id;
-    const active = getActiveCardRecord() || normalizedCards[0];
-    state.design = cloneDesign(active.design);
-    state.selectedTileId = active.selectedTileId || state.design.tiles[0]?.id || null;
-  } else {
-    state.design = normalizeDesignData(data, data.name || "Imported Design");
-    state.selectedTileId = state.design.tiles[0]?.id || null;
-    state.activeCardId = uuid();
-    state.cards = [
-      {
-        id: state.activeCardId,
-        name: state.design.name || "Card 1",
-        design: cloneDesign(state.design),
-        selectedTileId: state.selectedTileId,
-      },
-    ];
+    els.iconEssentials.hidden = tile.type !== "icon";
+    if (tile.type === "icon") {
+      els.iconTint.value = tile.icon.tint || "#ffffff"; els.badgeColor.value = tile.icon.badgeColor || "#1769ff";
+      els.valueEnabled.checked = Boolean(tile.icon.valueEnabled); els.iconValue.value = tile.icon.value || "1";
+      els.iconValueRow.hidden = !tile.icon.valueEnabled;
+    }
+    const isImg = isImage(tile);
+    els.artworkAppearance.hidden = !isImg;
+    if (isImg) {
+      const fill = tile.imageFill || {};
+      $$("#fill-mode button").forEach((b) => b.classList.toggle("active", b.dataset.value === (fill.mode || "image")));
+      els.fillColor.value = fill.color || "#eef2f8";
+      els.artworkOpacity.value = tile.opacity ?? 1;
+      els.artworkOpacityVal.textContent = `${Math.round((tile.opacity ?? 1) * 100)}%`;
+      els.strokeColor.value = tile.strokeColor || "#000000";
+      els.strokeWidth.value = tile.strokeWidth ?? 0;
+      els.strokeWidthVal.textContent = `${tile.strokeWidth ?? 0}px`;
+    }
   }
-  if (resetProjectId) state.projectId = null;
-  syncInputsFromState();
-  render();
-}
+  function stripHtml(value) { const div = document.createElement("div"); div.innerHTML = value || ""; return div.textContent || ""; }
+  function renderSettings() {
+    els.quickCardName.value = state.design.name; els.cardName.value = state.design.name;
+    els.cardSize.value = state.design.card.preset; els.cardWidth.value = state.design.card.widthIn; els.cardHeight.value = state.design.card.heightIn;
+    els.customSize.hidden = state.design.card.preset !== "custom"; els.snapToggle.checked = state.design.snapEnabled; els.safeToggle.checked = state.design.showSafeBorder;
+  }
+  function renderAll() { if (!state.design) return; renderStage(); renderCards(); renderLayers(); renderInspector(); renderSettings(); updateHistoryButtons(); }
+  function updateHistoryButtons() { els.undoBtn.disabled = !state.history.canUndo; els.redoBtn.disabled = !state.history.canRedo; }
 
-function resetProject(options = {}) {
-  const { preserveSettings = false } = options;
-  state.projectId = null;
-  state.selectedTileId = null;
-  state.liveEditable = null;
-  const settings = preserveSettings
-    ? {
-        card: { ...state.design.card },
-        snapEnabled: state.design.snapEnabled,
-        gridStepIn: state.design.gridStepIn,
-        showSafeBorder: state.design.showSafeBorder,
-      }
-    : {};
-  state.design = buildStarterDesignFromCurrent(settings.name || "Card 1", settings);
-  state.selectedTileId = state.design.tiles[0]?.id || null;
-  state.activeCardId = uuid();
-  state.cards = [
-    {
-      id: state.activeCardId,
-      name: state.design.name || "Card 1",
-      design: cloneDesign(state.design),
-      selectedTileId: state.selectedTileId,
-    },
+  function setDrawer(name) {
+    $$(".drawer-view").forEach((view) => { view.hidden = view.dataset.view !== name; });
+    $$(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.drawer === name));
+    if (name === "assets") renderAssetLibrary();
+  }
+  function enterPlacement(type) {
+    state.placingType = type; document.body.classList.add("placing");
+    $$(".component-card").forEach((button) => button.classList.toggle("active", button.dataset.addType === type));
+    toast(type === "card-background" ? "Click the card to add a full background." : `Click or drag on the card to place ${typeName(type).toLowerCase()}.`);
+  }
+  function stopPlacement() {
+    state.placingType = null; document.body.classList.remove("placing");
+    $$(".component-card").forEach((button) => button.classList.remove("active"));
+    $(".placement-ghost")?.remove();
+  }
+  function stagePoint(event) {
+    const rect = els.cardStage.getBoundingClientRect();
+    return { x: C.clamp(event.clientX - rect.left,0,rect.width), y:C.clamp(event.clientY - rect.top,0,rect.height), rect };
+  }
+  function beginPlacement(event) {
+    if (!state.placingType || event.button !== 0) return;
+    event.preventDefault(); const point = stagePoint(event);
+    const ghost = document.createElement("div"); ghost.className = "placement-ghost"; els.cardStage.append(ghost);
+    state.drag = { kind:"place", type:state.placingType, startX:point.x, startY:point.y, pointerId:event.pointerId, ghost };
+    els.cardStage.setPointerCapture(event.pointerId); updatePlacementGhost(point);
+  }
+  function updatePlacementGhost(point) {
+    const drag = state.drag; if (!drag?.ghost) return;
+    const left = Math.min(drag.startX,point.x), top = Math.min(drag.startY,point.y);
+    drag.ghost.style.left=`${left}px`; drag.ghost.style.top=`${top}px`;
+    drag.ghost.style.width=`${Math.max(4,Math.abs(point.x-drag.startX))}px`; drag.ghost.style.height=`${Math.max(4,Math.abs(point.y-drag.startY))}px`;
+  }
+  function commitPlacement(event) {
+    const drag = state.drag; if (drag?.kind !== "place") return;
+    const point = stagePoint(event); const dx = Math.abs(point.x-drag.startX), dy = Math.abs(point.y-drag.startY);
+    const type = drag.type; const defaults = C.baseTile(type,state.design.card); let rect;
+    if (type === "card-background") rect = {xIn:0,yIn:0,wIn:state.design.card.widthIn,hIn:state.design.card.heightIn};
+    else if (dx > 12 && dy > 12) rect = {xIn:fromPx(Math.min(drag.startX,point.x)),yIn:fromPx(Math.min(drag.startY,point.y)),wIn:fromPx(dx),hIn:fromPx(dy)};
+    else rect = {xIn:fromPx(point.x)-defaults.wIn/2,yIn:fromPx(point.y)-defaults.hIn/2,wIn:defaults.wIn,hIn:defaults.hIn};
+    const tile = {...defaults,...C.constrainRect(rect,state.design.card,type==="card-background")};
+    state.drag = null; stopPlacement();
+    mutate(() => {
+      if (type === "card-background") state.design.tiles = state.design.tiles.filter((item) => item.type !== "card-background");
+      if (type === "card-background") state.design.tiles.unshift(tile); else state.design.tiles.push(tile);
+      state.selectedTileId = tile.id;
+    });
+    if (isImage(tile) && type !== "card-background") setDrawer("assets");
+    else if (isText(tile)) setTimeout(() => els.cardStage.querySelector(`[data-tile-id="${tile.id}"]`)?.dispatchEvent(new MouseEvent("dblclick",{bubbles:true})),0);
+  }
+
+  function beginMove(event, tile) {
+    if (state.placingType || event.button !== 0 || event.target.closest("[contenteditable=true]")) return;
+    event.preventDefault(); event.stopPropagation(); state.selectedTileId = tile.id; renderInspector(); updateSelectionBox();
+    const before = snapshot();
+    state.drag = {kind:"move",tileId:tile.id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,xIn:tile.xIn,yIn:tile.yIn,before};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function beginHandle(event) {
+    const tile = selectedTile(); if (!tile || event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation();
+    state.drag = {kind:event.currentTarget.dataset.handle === "rotate" ? "rotate":"resize",handle:event.currentTarget.dataset.handle,tileId:tile.id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,xIn:tile.xIn,yIn:tile.yIn,wIn:tile.wIn,hIn:tile.hIn,rotationDeg:tile.rotationDeg||0,before:snapshot()};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function smartSnap(tile, x, y) {
+    if (!state.design.snapEnabled) return {x,y,gx:null,gy:null};
+    const tolerance = fromPx(6), card = state.design.card;
+    const xTargets = [C.SAFE_BORDER_IN,card.widthIn/2-tile.wIn/2,card.widthIn-C.SAFE_BORDER_IN-tile.wIn];
+    const yTargets = [C.SAFE_BORDER_IN,card.heightIn/2-tile.hIn/2,card.heightIn-C.SAFE_BORDER_IN-tile.hIn];
+    state.design.tiles.filter((other)=>other.id!==tile.id&&!other.hidden).forEach((other)=>{
+      xTargets.push(other.xIn,other.xIn+other.wIn/2-tile.wIn/2,other.xIn+other.wIn-tile.wIn);
+      yTargets.push(other.yIn,other.yIn+other.hIn/2-tile.hIn/2,other.yIn+other.hIn-tile.hIn);
+    });
+    let gx=null,gy=null;
+    const xn=xTargets.find((target)=>Math.abs(target-x)<=tolerance); const yn=yTargets.find((target)=>Math.abs(target-y)<=tolerance);
+    if(xn!=null){x=xn;gx=x+tile.wIn/2;}else x=C.snap(x,state.design.gridStepIn,true);
+    if(yn!=null){y=yn;gy=y+tile.hIn/2;}else y=C.snap(y,state.design.gridStepIn,true);
+    return {x,y,gx,gy};
+  }
+  function updateGuides(gx,gy) {
+    els.guideY.hidden = gx == null; els.guideX.hidden = gy == null;
+    if(gx!=null) els.guideY.style.left=`${toPx(gx)}px`; if(gy!=null) els.guideX.style.top=`${toPx(gy)}px`;
+  }
+  function pointerMove(event) {
+    const drag=state.drag; if(!drag||event.pointerId!==drag.pointerId)return;
+    if(drag.kind==="place"){updatePlacementGhost(stagePoint(event));return;}
+    const tile=selectedTile(); if(!tile)return;
+    const dx=fromPx(event.clientX-drag.startX),dy=fromPx(event.clientY-drag.startY);
+    if(drag.kind==="move"){
+      const snapped=smartSnap(tile,drag.xIn+dx,drag.yIn+dy); tile.xIn=snapped.x;tile.yIn=snapped.y;updateGuides(snapped.gx,snapped.gy);
+      Object.assign(tile,C.constrainRect(tile,state.design.card,tile.type==="card-background"));
+    } else if(drag.kind==="resize"){
+      let x=drag.xIn,y=drag.yIn,w=drag.wIn,h=drag.hIn; const handle=drag.handle;
+      if(handle.includes("e"))w=drag.wIn+dx;if(handle.includes("s"))h=drag.hIn+dy;
+      if(handle.includes("w")){x=drag.xIn+dx;w=drag.wIn-dx;}if(handle.includes("n")){y=drag.yIn+dy;h=drag.hIn-dy;}
+      if(event.shiftKey){const ratio=drag.wIn/drag.hIn;if(Math.abs(dx)>Math.abs(dy))h=w/ratio;else w=h*ratio;}
+      Object.assign(tile,C.constrainRect({xIn:x,yIn:y,wIn:w,hIn:h},state.design.card,tile.type==="card-background"));
+    } else if(drag.kind==="rotate"){
+      const rect=els.cardStage.getBoundingClientRect(),cx=rect.left+toPx(tile.xIn+tile.wIn/2),cy=rect.top+toPx(tile.yIn+tile.hIn/2);
+      let angle=Math.atan2(event.clientY-cy,event.clientX-cx)*180/Math.PI+90;
+      if(event.shiftKey)angle=Math.round(angle/15)*15; else if(Math.abs(angle-Math.round(angle/90)*90)<4)angle=Math.round(angle/90)*90;
+      tile.rotationDeg=C.normalizeRotation(angle);
+    }
+    const node=els.cardStage.querySelector(`[data-tile-id="${tile.id}"]`); if(node)elementStyles(node,tile);updateSelectionBox();renderInspector();
+  }
+  function pointerUp(event) {
+    const drag=state.drag;if(!drag||event.pointerId!==drag.pointerId)return;
+    if(drag.kind==="place"){commitPlacement(event);return;}
+    state.drag=null;updateGuides(null,null);syncActive();pushHistory(drag.before,snapshot());renderAll();scheduleDraft();
+  }
+  function beginTextEdit(event,node,tile){
+    event.preventDefault();event.stopPropagation();state.selectedTileId=tile.id;const before=snapshot();
+    node.contentEditable="true";node.focus();document.execCommand("selectAll",false,null);
+    const finish=()=>{node.contentEditable="false";tile.textHtml=node.innerHTML;syncActive();pushHistory(before,snapshot());renderAll();scheduleDraft();};
+    node.addEventListener("blur",finish,{once:true});
+    node.addEventListener("keydown",(e)=>{if(e.key==="Escape"){e.preventDefault();node.blur();}},{once:true});
+  }
+
+  function renderAssetLibrary() {
+    const categories=["All",...new Set(icons.map((icon)=>icon.category))];els.categoryChips.replaceChildren();
+    categories.forEach((category)=>{const button=document.createElement("button");button.textContent=category;button.classList.toggle("active",state.assetCategory===category);button.onclick=()=>{state.assetCategory=category;renderAssetLibrary();};els.categoryChips.append(button);});
+    const query=state.assetQuery.toLowerCase();const filtered=icons.filter((icon)=>(state.assetCategory==="All"||icon.category===state.assetCategory)&&(!query||`${icon.name} ${icon.category}`.toLowerCase().includes(query)));
+    els.iconCount.textContent=String(filtered.length);els.assetGrid.replaceChildren();els.assetEmpty.hidden=filtered.length>0;
+    filtered.forEach((icon)=>{const button=document.createElement("button");button.className="asset-card";button.title=`${icon.name} · ${icon.category}`;const image=document.createElement("img");image.src=encodeURI(icon.thumbnail);image.alt=icon.name;button.append(image);button.onclick=()=>chooseAsset(icon);els.assetGrid.append(button);});
+  }
+  async function chooseAsset(icon) {
+    let tile=selectedTile();
+    if(!tile||!isImage(tile)){enterPlacement("icon");toast("Place an icon on the card, then choose the symbol again.");return;}
+    try{
+      const response=await fetch(encodeURI(icon.path));if(!response.ok)throw new Error("Icon could not be loaded.");
+      const svg=await response.text();const dataUrl=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      mutate(()=>{tile.imageDataUrl=dataUrl;tile.sourceAsset={id:icon.id,name:icon.name,category:icon.category,attribution:"fractal-symbols"};tile.imageFill.mode="image";});
+      toast(`${icon.name} added. Remember to include Fractal Symbols attribution.`);
+    }catch(error){toast(error.message);}
+  }
+  async function uploadImage(file) {
+    if(!file)return;if(!["image/png","image/jpeg"].includes(file.type))return toast("Choose a PNG or JPG image.");
+    if(file.size>2.5*1024*1024)return toast("Image is larger than 2.5 MB.");
+    const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+    const image=await new Promise((resolve,reject)=>{const node=new Image();node.onload=()=>resolve(node);node.onerror=reject;node.src=dataUrl;});
+    if(image.width>3000||image.height>3000)return toast("Image dimensions exceed 3000 × 3000.");
+    let tile=selectedTile();if(!tile||!isImage(tile)){enterPlacement("main-image");toast("Place an artwork element, then upload again.");return;}
+    mutate(()=>{tile.imageDataUrl=dataUrl;tile.sourceAsset={kind:"upload",name:file.name};tile.imageFill.mode="image";});toast("Image added.");
+  }
+
+  const DB_NAME="martins-card-prototyper",STORE="drafts";let draftTimer;
+  function openDb(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=()=>request.result.createObjectStore(STORE);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+  async function saveDraft(){try{syncActive();const db=await openDb();const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put({payload:buildPayload(),savedAt:new Date().toISOString()},"current");}catch{}}
+  function scheduleDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,500);}
+  async function readDraft(){try{const db=await openDb();return await new Promise((resolve)=>{const request=db.transaction(STORE).objectStore(STORE).get("current");request.onsuccess=()=>resolve(request.result);request.onerror=()=>resolve(null);});}catch{return null;}}
+  async function clearDraft(){try{const db=await openDb();db.transaction(STORE,"readwrite").objectStore(STORE).delete("current");}catch{}}
+  function buildPayload(){syncActive();return{version:3,format:"martins-card-prototyper-project",savedAt:new Date().toISOString(),activeCardId:state.activeCardId,cards:C.clone(state.cards)};}
+  function loadPayload(payload){const project=C.normalizeProject(payload);state.cards=project.cards;state.activeCardId=project.activeCardId;const card=activeCard()||state.cards[0];state.design=C.clone(card.design);state.selectedTileId=card.selectedTileId;state.history.clear();renderAll();scheduleDraft();}
+
+  async function capturePng() {
+    if(typeof html2canvas!=="function")throw new Error("Export library did not load.");
+    const selected=state.selectedTileId,showSafe=state.design.showSafeBorder;state.selectedTileId=null;state.design.showSafeBorder=false;
+    document.body.classList.add("exporting");renderStage();
+    try{const canvas=await html2canvas(els.cardStage,{backgroundColor:"#ffffff",scale:Math.max(2,Math.min(4,Math.ceil(750/els.cardStage.clientWidth))),useCORS:true,logging:false});return canvas.toDataURL("image/png");}
+    finally{document.body.classList.remove("exporting");state.selectedTileId=selected;state.design.showSafeBorder=showSafe;renderStage();}
+  }
+  function download(url,name){const link=document.createElement("a");link.href=url;link.download=name;link.click();}
+  async function captureCards(scope){
+    syncActive();const original=state.activeCardId,ids=scope==="all"?state.cards.map((c)=>c.id):[state.activeCardId],out=[];
+    for(const id of ids){if(id!==state.activeCardId)activateCard(id);out.push({name:state.design.name,dataUrl:await capturePng(),attribution:state.design.tiles.some((t)=>t.sourceAsset?.attribution==="fractal-symbols")});}
+    if(original!==state.activeCardId)activateCard(original);return out;
+  }
+  async function exportPng(){const scope=els.exportScope.value;const cards=await captureCards(scope);cards.forEach((card,index)=>setTimeout(()=>download(card.dataUrl,`${scope==="all"?String(index+1).padStart(2,"0")+"-":""}${safeFile(card.name)}.png`),index*120));toast(cards.length===1?"PNG exported.":`${cards.length} PNG files queued.`);}
+  async function exportPdf(){
+    const scope=els.exportScope.value,cards=await captureCards(scope),pageDef=els.pdfPage.value==="a4"?[595.28,841.89]:[612,792],layout=els.pdfLayout.value;
+    const config=layout==="grid3x3"?{cols:3,rows:3,rotate:false}:layout==="grid2x3"?{cols:3,rows:2,rotate:false}:{cols:2,rows:4,rotate:true};
+    const pdf=await PDFLib.PDFDocument.create(),copies=scope==="all"?cards.length:C.clamp(Number(els.pdfCopies.value)||1,1,300);
+    const sources=scope==="all"?cards:Array.from({length:copies},()=>cards[0]);const embedded=[];
+    for(const card of sources){embedded.push({image:await pdf.embedPng(await fetch(card.dataUrl).then((r)=>r.arrayBuffer())),attribution:card.attribution});}
+    const cardW=(config.rotate?state.design.card.heightIn:state.design.card.widthIn)*72,cardH=(config.rotate?state.design.card.widthIn:state.design.card.heightIn)*72,gutter=layout==="gutterfold"?18:0;
+    const per=config.cols*config.rows;
+    for(let offset=0;offset<embedded.length;offset+=per){const page=pdf.addPage(pageDef);const totalW=config.cols*cardW+(config.cols-1)*gutter,totalH=config.rows*cardH,marginX=(pageDef[0]-totalW)/2,marginY=(pageDef[1]-totalH)/2;let attributed=false;
+      embedded.slice(offset,offset+per).forEach((entry,i)=>{const col=i%config.cols,row=Math.floor(i/config.cols),x=marginX+col*(cardW+gutter),y=pageDef[1]-marginY-(row+1)*cardH;page.drawImage(entry.image,{x,y,width:cardW,height:cardH,rotate:config.rotate?PDFLib.degrees(90):undefined});drawGuides(page,x,y,cardW,cardH);attributed ||= entry.attribution;});
+      if(attributed)page.drawText("Fractal Symbols by Felix Thalin · fractalsymbols.com · CC BY 4.0",{x:36,y:14,size:6,color:PDFLib.rgb(.35,.38,.44)});
+    }
+    const bytes=await pdf.save(),url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));download(url,`${scope==="all"?"all-cards":safeFile(state.design.name)}-${layout}.pdf`);setTimeout(()=>URL.revokeObjectURL(url),1000);toast("PDF exported.");
+  }
+  function drawGuides(page,x,y,w,h){const color=PDFLib.rgb(.2,.2,.22),length=7;[[x-length,y,x,y],[x,y-length,x,y],[x+w,y-length,x+w,y],[x+w,y,x+w+length,y],[x-length,y+h,x,y+h],[x,y+h,x,y+h+length],[x+w,y+h,x+w+length,y+h],[x+w,y+h,x+w,y+h+length]].forEach(([x1,y1,x2,y2])=>page.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},thickness:.65,color}));}
+
+  const tutorialSteps=[
+    {target:".tool-rail",title:"A focused toolkit",copy:"Use Add, Assets, Cards, Layers, Project, and Export without crowding the canvas."},
+    {target:".component-list",drawer:"add",title:"Choose a component",copy:"Select a component, then click or drag directly on the card to place it."},
+    {target:"#card-stage",title:"A tactile canvas",copy:"Single-click to select. Drag to move, use eight handles to resize, and the top handle to rotate."},
+    {target:"#selection-box",title:"Precise transforms",copy:"Elements snap to the safe area, card center, and nearby elements. Arrow keys provide exact nudging."},
+    {target:"#inspector",title:"Essentials first",copy:"Common styling stays visible. Exact geometry and typography live under More controls."},
+    {target:".rail-button[data-drawer='assets']",title:"Free icon artwork",copy:"Search 327 Fractal Symbols for icons or artwork. PDF sheets add the required attribution automatically."},
+    {target:"#preview-top-btn",title:"Preview before export",copy:"Check a clean render, then export PNG or a print-ready PDF from the Export drawer."},
   ];
-  syncInputsFromState();
-  render();
-  setStatus("Started a new project.");
-}
-
-function syncInputsFromState() {
-  els.projectName.value = state.design.name || "";
-  els.snapToggle.checked = state.design.snapEnabled;
-  els.gridStepInput.value = state.design.gridStepIn;
-  els.showSafeBorder.checked = state.design.showSafeBorder;
-
-  const preset = state.design.card.preset;
-  els.cardSizeSelect.value = preset;
-  if (preset === "custom") {
-    els.customSizeWrap.hidden = false;
-    els.customWidth.value = state.design.card.widthIn;
-    els.customHeight.value = state.design.card.heightIn;
-  } else {
-    els.customSizeWrap.hidden = true;
+  function showTutorialStep(){
+    const step=tutorialSteps[state.tutorialIndex];if(step.drawer)setDrawer(step.drawer);const target=$(step.target);if(!target){endTutorial();return;}target.scrollIntoView({block:"center",inline:"nearest"});const rect=target.getBoundingClientRect(),pad=7;Object.assign(els.tutorialSpotlight.style,{left:`${rect.left-pad}px`,top:`${rect.top-pad}px`,width:`${rect.width+pad*2}px`,height:`${rect.height+pad*2}px`});els.tutorialProgress.textContent=`Step ${state.tutorialIndex+1} of ${tutorialSteps.length}`;els.tutorialTitle.textContent=step.title;els.tutorialCopy.textContent=step.copy;els.tutorialBack.disabled=state.tutorialIndex===0;els.tutorialNext.textContent=state.tutorialIndex===tutorialSteps.length-1?"Finish":"Next";
+    requestAnimationFrame(()=>{const box=els.tutorialCallout.getBoundingClientRect();let left=rect.right+14,top=rect.top;if(left+box.width>innerWidth-12)left=Math.max(12,rect.left-box.width-14);if(top+box.height>innerHeight-12)top=innerHeight-box.height-12;Object.assign(els.tutorialCallout.style,{left:`${Math.max(12,left)}px`,top:`${Math.max(12,top)}px`});});
   }
-}
+  function startTutorial(){state.tutorialActive=true;state.tutorialIndex=0;els.tutorialLayer.hidden=false;try{localStorage.setItem("martins_card_prototyper.tutorial_seen_v2","1");}catch{}showTutorialStep();}
+  function endTutorial(){state.tutorialActive=false;els.tutorialLayer.hidden=true;}
 
-function safeFile(name) {
-  return String(name).trim().replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-}
-
-async function captureCardPngDataUrl() {
-  if (typeof html2canvas !== "function") {
-    throw new Error("Export dependency failed to load. Refresh the page and try again.");
+  function bind() {
+    $$(".rail-button").forEach((button)=>button.onclick=()=>setDrawer(button.dataset.drawer));
+    $$(".component-card").forEach((button)=>button.onclick=()=>enterPlacement(button.dataset.addType));
+    els.cardStage.addEventListener("pointerdown",(event)=>{if(state.placingType)beginPlacement(event);else if(event.target===els.cardStage){state.selectedTileId=null;renderAll();}});
+    window.addEventListener("pointermove",pointerMove);window.addEventListener("pointerup",pointerUp);
+    $$("#selection-box [data-handle]").forEach((handle)=>handle.addEventListener("pointerdown",beginHandle));
+    window.addEventListener("resize",()=>renderStage());
+    window.addEventListener("keydown",(event)=>{
+      if(event.key==="Escape"){if(state.placingType)stopPlacement();return;}
+      if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable)return;
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="z"){event.preventDefault();event.shiftKey?state.history.redo():state.history.undo();updateHistoryButtons();return;}
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="y"){event.preventDefault();state.history.redo();updateHistoryButtons();return;}
+      const tile=selectedTile();if(!tile)return;
+      if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)){event.preventDefault();const step=event.shiftKey?.1:.01;const before=snapshot();if(event.key==="ArrowLeft")tile.xIn-=step;if(event.key==="ArrowRight")tile.xIn+=step;if(event.key==="ArrowUp")tile.yIn-=step;if(event.key==="ArrowDown")tile.yIn+=step;Object.assign(tile,C.constrainRect(tile,state.design.card,tile.type==="card-background"));syncActive();pushHistory(before,snapshot());renderAll();scheduleDraft();}
+      if(event.key==="Delete"||event.key==="Backspace"){event.preventDefault();deleteSelected();}
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="d"){event.preventDefault();mutate(()=>{const copy=C.clone(tile);copy.id=C.uid();copy.xIn+=.05;copy.yIn+=.05;state.design.tiles.push(copy);state.selectedTileId=copy.id;});}
+    });
+    els.undoBtn.onclick=()=>{state.history.undo();updateHistoryButtons();};els.redoBtn.onclick=()=>{state.history.redo();updateHistoryButtons();};
+    els.zoomOut.onclick=()=>{state.zoom=C.clamp(state.zoom-.1,.5,2);renderStage();};els.zoomIn.onclick=()=>{state.zoom=C.clamp(state.zoom+.1,.5,2);renderStage();};els.zoomFit.onclick=()=>{state.zoom=1;renderStage();};
+    [els.quickCardName,els.cardName].forEach((input)=>input.addEventListener("change",()=>mutate(()=>{state.design.name=input.value.trim()||"Untitled Card";})));
+    els.elementLabel.onchange=()=>mutate(()=>{selectedTile().label=els.elementLabel.value;});
+    els.elementText.onchange=()=>mutate(()=>{selectedTile().textHtml=`<div>${escapeHtml(els.elementText.value).replace(/\n/g,"<br>")}</div>`;});
+    els.deleteElement.onclick=deleteSelected;
+    $$("#text-align button").forEach((button)=>button.onclick=()=>mutate(()=>{selectedTile().style.textAlign=button.dataset.value;}));
+    [["text-color",(t,v)=>t.style.color=v],["panel-color",(t,v)=>{t.style.background=v;t.transparentBg=false;}],["icon-tint",(t,v)=>t.icon.tint=v],["badge-color",(t,v)=>t.icon.badgeColor=v]].forEach(([id,fn])=>byId(id).addEventListener("input",(event)=>mutate(()=>fn(selectedTile(),event.target.value))));
+    els.valueEnabled.onchange=()=>mutate(()=>{selectedTile().icon.valueEnabled=els.valueEnabled.checked;});els.iconValue.onchange=()=>mutate(()=>{selectedTile().icon.value=els.iconValue.value;});
+    [["x-input","xIn"],["y-input","yIn"],["w-input","wIn"],["h-input","hIn"]].forEach(([id,key])=>byId(id).onchange=()=>mutate(()=>{selectedTile()[key]=Number(byId(id).value);Object.assign(selectedTile(),C.constrainRect(selectedTile(),state.design.card,selectedTile().type==="card-background"));}));
+    els.rotationInput.onchange=()=>mutate(()=>{selectedTile().rotationDeg=C.normalizeRotation(els.rotationInput.value);});els.fontFamily.onchange=()=>mutate(()=>{selectedTile().style.fontFamily=els.fontFamily.value;});els.fontSize.onchange=()=>mutate(()=>{selectedTile().style.fontSizePt=C.clamp(Number(els.fontSize.value),4,72);});
+    els.frameToggle.onchange=()=>mutate(()=>{selectedTile().showOutline=els.frameToggle.checked;});els.transparentToggle.onchange=()=>mutate(()=>{selectedTile().transparentBg=els.transparentToggle.checked;});
+    $$("#fill-mode button").forEach((button)=>button.onclick=()=>mutate(()=>{selectedTile().imageFill.mode=button.dataset.value;}));
+    els.fillColor.oninput=()=>mutate(()=>{selectedTile().imageFill.color=els.fillColor.value;selectedTile().imageFill.mode="color";});
+    els.artworkOpacity.oninput=()=>{els.artworkOpacityVal.textContent=`${Math.round(els.artworkOpacity.value*100)}%`;mutate(()=>{selectedTile().opacity=Number(els.artworkOpacity.value);});};
+    els.strokeColor.oninput=()=>mutate(()=>{selectedTile().strokeColor=els.strokeColor.value;});
+    els.strokeWidth.oninput=()=>{els.strokeWidthVal.textContent=`${els.strokeWidth.value}px`;mutate(()=>{selectedTile().strokeWidth=Number(els.strokeWidth.value);});};
+    els.chooseAssetBtn.onclick=()=>setDrawer("assets");els.replaceUploadBtn.onclick=els.uploadImageBtn.onclick=()=>els.imageFile.click();els.imageFile.onchange=()=>{uploadImage(els.imageFile.files?.[0]);els.imageFile.value="";};
+    els.assetSearch.oninput=()=>{state.assetQuery=els.assetSearch.value;renderAssetLibrary();};els.assetLicenseBtn.onclick=()=>els.licenseDialog.showModal();
+    els.newCardBtn.onclick=()=>{els.templateDialog.dataset.mode="add";els.templateDialog.showModal();};
+    $$("[data-template]").forEach((button)=>button.onclick=()=>{const id=button.dataset.template,mode=els.templateDialog.dataset.mode;els.templateDialog.close();mode==="add"?addCard(id):createProject(id);if(els.guideAfterTemplate.checked)setTimeout(startTutorial,300);});
+    $$("[data-close-dialog]").forEach((button)=>button.onclick=()=>byId(button.dataset.closeDialog).close());
+    els.cardSize.onchange=()=>mutate(()=>{const preset=els.cardSize.value;state.design.card.preset=preset;if(preset!=="custom")Object.assign(state.design.card,C.CARD_SIZES[preset]);state.design.tiles=state.design.tiles.map((tile)=>{const next=C.normalizeTile(tile,state.design.card,3);if(next.type==="card-background")Object.assign(next,{xIn:0,yIn:0,wIn:state.design.card.widthIn,hIn:state.design.card.heightIn});return next;});});
+    [els.cardWidth,els.cardHeight].forEach((input)=>input.onchange=()=>mutate(()=>{state.design.card.preset="custom";state.design.card.widthIn=C.clamp(Number(els.cardWidth.value),1,10);state.design.card.heightIn=C.clamp(Number(els.cardHeight.value),1,14);}));
+    els.snapToggle.onchange=()=>mutate(()=>{state.design.snapEnabled=els.snapToggle.checked;});els.safeToggle.onchange=()=>mutate(()=>{state.design.showSafeBorder=els.safeToggle.checked;});
+    els.saveJsonBtn.onclick=()=>{const blob=new Blob([JSON.stringify(buildPayload(),null,2)],{type:"application/json"}),url=URL.createObjectURL(blob);download(url,`${safeFile(state.design.name)}.json`);setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Project JSON saved.");};
+    els.loadJsonBtn.onclick=()=>els.projectFile.click();els.projectFile.onchange=async()=>{try{loadPayload(JSON.parse(await els.projectFile.files[0].text()));toast("Project loaded.");}catch{toast("That project file could not be loaded.");}els.projectFile.value="";};
+    els.startOverBtn.onclick=()=>{if(confirm("Start over? Unsaved changes will be replaced.")){els.templateDialog.dataset.mode="new";els.templateDialog.showModal();}};
+    [els.previewBtn,els.previewTopBtn].forEach((button)=>button.onclick=async()=>{try{const png=await capturePng();els.previewImage.src=png;els.previewTitle.textContent=state.design.name;els.previewDownload.onclick=()=>download(png,`${safeFile(state.design.name)}.png`);els.previewDialog.showModal();}catch(error){toast(error.message);}});
+    els.pngBtn.onclick=()=>exportPng().catch((error)=>toast(error.message));els.pdfBtn.onclick=()=>exportPdf().catch((error)=>{console.error(error);toast("PDF export failed.");});
+    els.tutorialBtn.onclick=startTutorial;els.tutorialSkip.onclick=endTutorial;els.tutorialBack.onclick=()=>{state.tutorialIndex=Math.max(0,state.tutorialIndex-1);showTutorialStep();};els.tutorialNext.onclick=()=>{if(state.tutorialIndex===tutorialSteps.length-1)endTutorial();else{state.tutorialIndex++;showTutorialStep();}};
+    els.relatedBtn.onclick=(event)=>{event.stopPropagation();const open=els.relatedMenu.hidden;els.relatedMenu.hidden=!open;els.relatedBtn.setAttribute("aria-expanded",open);};document.addEventListener("click",()=>{els.relatedMenu.hidden=true;els.relatedBtn.setAttribute("aria-expanded","false");});
+    els.themeBtn.onclick=()=>{const theme=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=theme;document.body.dataset.theme=theme;localStorage.setItem("martins_card_prototyper.theme",theme);byId("theme-color").content=theme==="dark"?"#090b10":"#f4f7fb";};
+    els.feedbackBtn.onclick=()=>{location.href="mailto:help@pnpfinder.com?subject=Card%20Prototyper%20Feedback";};
   }
+  function deleteSelected(){const tile=selectedTile();if(!tile)return;mutate(()=>{state.design.tiles=state.design.tiles.filter((item)=>item.id!==tile.id);state.selectedTileId=null;});}
+  function escapeHtml(value){return String(value).replace(/[&<>"']/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));}
 
-  const selected = state.selectedTileId;
-  const wasShowingSafeBorder = state.design.showSafeBorder;
-  const widthPx = Math.max(1, Number(els.cardStage.clientWidth) || 0);
-  const cardWidthPx = Math.max(1, getCardSize().w * getPxPerIn());
-  const targetScale = Math.max(2, Math.min(4, Math.floor((DPI_EXPORT * getCardSize().w) / widthPx)));
-  const fallbackScale = Math.max(2, Math.min(4, Math.round(cardWidthPx / widthPx)));
-  state.selectedTileId = null;
-  state.design.showSafeBorder = false;
-  els.cardStage.classList.add("export-mode");
-  render();
-  try {
-    const baseOptions = {
-      backgroundColor: null,
-      ignoreElements: (element) => element.classList?.contains("export-hide"),
-      useCORS: true,
-      logging: false,
-      onclone: (doc) => {
-        const stage = doc.querySelector("#cardStage");
-        if (!stage) return;
-        // Avoid CSS functions that can break some html2canvas parsers.
-        stage.style.background = "#ffffff";
-        stage.style.backgroundImage = "none";
-        stage.style.boxShadow = "none";
-        stage.style.borderColor = "rgba(36, 55, 88, 0.24)";
-        stage.querySelectorAll(".tile").forEach((tileEl) => {
-          tileEl.style.backgroundImage = "none";
-        });
-        stage.querySelectorAll(".tile-content").forEach((contentEl) => {
-          if (contentEl.closest(".tile.title, .tile.effect, .tile.flavor")) {
-            contentEl.style.overflow = "hidden";
-          }
-        });
-        stage.querySelectorAll(".tile-text-editable").forEach((textEl) => {
-          textEl.setAttribute("contenteditable", "false");
-          textEl.scrollTop = 0;
-          textEl.scrollLeft = 0;
-          textEl.style.overflow = "visible";
-        });
-      },
-    };
-
-    try {
-      const canvas = await html2canvas(els.cardStage, {
-        ...baseOptions,
-        scale: targetScale,
-      });
-      return canvas.toDataURL("image/png");
-    } catch (firstError) {
-      const canvas = await html2canvas(els.cardStage, {
-        ...baseOptions,
-        scale: fallbackScale,
-        foreignObjectRendering: true,
-      });
-      return canvas.toDataURL("image/png");
-    }
-  } finally {
-    els.cardStage.classList.remove("export-mode");
-    state.selectedTileId = selected;
-    state.design.showSafeBorder = wasShowingSafeBorder;
-    render();
+  async function bootstrap(){
+    bind();renderAssetLibrary();const draft=await readDraft();
+    if(draft?.payload){els.restoreDialog.showModal();els.restoreDraft.onclick=()=>{els.restoreDialog.close();loadPayload(draft.payload);toast("Draft restored.");};els.discardDraft.onclick=async()=>{els.restoreDialog.close();await clearDraft();els.templateDialog.dataset.mode="new";els.templateDialog.showModal();};}
+    else{createProject("ability");els.templateDialog.dataset.mode="new";els.templateDialog.showModal();}
   }
-}
-
-function getLayoutConfig(layout) {
-  if (layout === "grid3x3") return { cols: 3, rows: 3, centerGutterIn: 0, cardRotate: 0 };
-  if (layout === "grid2x3") return { cols: 3, rows: 2, centerGutterIn: 0, cardRotate: 0 };
-  return { cols: 2, rows: 4, centerGutterIn: 0.25, cardRotate: 90 };
-}
-
-function getPageSizePoints(pageKey) {
-  const p = pageSizes[pageKey] || pageSizes.letter;
-  return { w: inchesToPoints(p.w), h: inchesToPoints(p.h) };
-}
-
-function getCardSizePointsForLayout(layoutKey) {
-  const card = getCardSize();
-  const base = { w: inchesToPoints(card.w), h: inchesToPoints(card.h) };
-  if (layoutKey === "gutterfold") return { w: base.h, h: base.w };
-  return base;
-}
-
-function getPositions(layoutConfig, pageW, pageH, cardW, cardH, safeMarginPt = inchesToPoints(0.25)) {
-  const totalW =
-    layoutConfig.cols * cardW + (layoutConfig.cols - 1) * 0 + (layoutConfig.cols === 2 ? inchesToPoints(layoutConfig.centerGutterIn || 0) : 0);
-  const totalH = layoutConfig.rows * cardH;
-  const marginX = Math.max((pageW - totalW) / 2, safeMarginPt);
-  const marginY = Math.max((pageH - totalH) / 2, safeMarginPt);
-  const centerGutter = inchesToPoints(layoutConfig.centerGutterIn || 0);
-  const out = [];
-  for (let row = 0; row < layoutConfig.rows; row += 1) {
-    for (let col = 0; col < layoutConfig.cols; col += 1) {
-      let x = marginX + col * cardW;
-      if (layoutConfig.cols === 2 && col === 1) x += centerGutter;
-      const y = pageH - marginY - cardH - row * cardH;
-      out.push({ x, y, width: cardW, height: cardH });
-    }
-  }
-  return out;
-}
-
-function drawCutGuides(page, box) {
-  const l = 7;
-  const s = 1.0;
-  const halo = PDFLib.rgb(1, 1, 1);
-  const col = PDFLib.rgb(0.18, 0.18, 0.18);
-  const x1 = box.x;
-  const y1 = box.y;
-  const x2 = box.x + box.width;
-  const y2 = box.y + box.height;
-  const segments = [
-    [{ x: x1 - l, y: y1 }, { x: x1, y: y1 }],
-    [{ x: x1, y: y1 - l }, { x: x1, y: y1 }],
-    [{ x: x2, y: y1 - l }, { x: x2, y: y1 }],
-    [{ x: x2, y: y1 }, { x: x2 + l, y: y1 }],
-    [{ x: x1 - l, y: y2 }, { x: x1, y: y2 }],
-    [{ x: x1, y: y2 }, { x: x1, y: y2 + l }],
-    [{ x: x2, y: y2 }, { x: x2 + l, y: y2 }],
-    [{ x: x2, y: y2 }, { x: x2, y: y2 + l }],
-  ];
-
-  // Draw white halo first so guides remain visible over any card artwork.
-  segments.forEach(([start, end]) => {
-    page.drawLine({ start, end, thickness: s + 1.2, color: halo });
-  });
-  segments.forEach(([start, end]) => {
-    page.drawLine({ start, end, thickness: s, color: col });
-  });
-}
-
-async function exportPdf() {
-  const scope = els.exportScopeSelect?.value || "active";
-  const pageKey = els.pdfPageSize.value;
-  const layoutKey = els.pdfLayout.value;
-  const copies = clamp(Number(els.pdfCopies.value || 1), 1, 300);
-  const layout = getLayoutConfig(layoutKey);
-  const pageSize = getPageSizePoints(pageKey);
-  const cardSizePts = getCardSizePointsForLayout(layoutKey);
-  const positions = getPositions(layout, pageSize.w, pageSize.h, cardSizePts.w, cardSizePts.h);
-  const cardsPerPage = positions.length;
-
-  if (!positions.length) throw new Error("Invalid PDF layout.");
-
-  const pdf = await PDFLib.PDFDocument.create();
-  if (scope === "all") {
-    const cards = await captureExportCards("all", { rotateForLayout: true, layoutKey });
-    if (!cards.length) throw new Error("No cards available for PDF export.");
-    const imageBuffers = await Promise.all(cards.map((card) => fetch(card.dataUrl).then((r) => r.arrayBuffer())));
-    const images = await Promise.all(imageBuffers.map((bytes) => pdf.embedPng(bytes)));
-    const totalPages = Math.ceil(images.length / cardsPerPage);
-    for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
-      const page = pdf.addPage([pageSize.w, pageSize.h]);
-      const pageBoxes = [];
-      for (let i = 0; i < cardsPerPage; i += 1) {
-        const global = pageIndex * cardsPerPage + i;
-        if (global >= images.length) break;
-        const box = positions[i];
-        page.drawImage(images[global], {
-          x: box.x,
-          y: box.y,
-          width: box.width,
-          height: box.height,
-        });
-        pageBoxes.push(box);
-      }
-      pageBoxes.forEach((box) => {
-        drawCutGuides(page, box);
-      });
-    }
-  } else {
-    const cards = await captureExportCards("active", { rotateForLayout: true, layoutKey });
-    const imageData = cards[0]?.dataUrl;
-    if (!imageData) throw new Error("Unable to render active card for PDF export.");
-    const pngBytes = await fetch(imageData).then((r) => r.arrayBuffer());
-    const image = await pdf.embedPng(pngBytes);
-    const totalPages = Math.ceil(copies / cardsPerPage);
-    for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
-      const page = pdf.addPage([pageSize.w, pageSize.h]);
-      const pageBoxes = [];
-      for (let i = 0; i < cardsPerPage; i += 1) {
-        const global = pageIndex * cardsPerPage + i;
-        if (global >= copies) break;
-        const box = positions[i];
-        page.drawImage(image, {
-          x: box.x,
-          y: box.y,
-          width: box.width,
-          height: box.height,
-        });
-        pageBoxes.push(box);
-      }
-      pageBoxes.forEach((box) => {
-        drawCutGuides(page, box);
-      });
-    }
-  }
-
-  const bytes = await pdf.save();
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const filenameBase = scope === "all" ? "all-cards" : safeFile(state.design.name || "card");
-  triggerDownload(url, `${filenameBase}-${layoutKey}-${pageKey}.pdf`);
-  URL.revokeObjectURL(url);
-}
-
-async function rotateDataUrlClockwise(dataUrl) {
-  const img = await loadImage(dataUrl);
-  const canvas = document.createElement("canvas");
-  canvas.width = img.height;
-  canvas.height = img.width;
-  const ctx = canvas.getContext("2d");
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate(Math.PI / 2);
-  ctx.drawImage(img, -img.width / 2, -img.height / 2);
-  return canvas.toDataURL("image/png");
-}
-
-function bootstrap() {
-  sortFontFamilyOptions();
-  bindEvents();
-  initTheme();
-  applyTooltips();
-  const loadedDraft = loadDraft();
-  if (!loadedDraft) {
-    resetProject();
-    openTutorialPrompt(false);
-    return;
-  }
-  syncInputsFromState();
-  render();
-  openTutorialPrompt(false);
-}
-
-bootstrap();
+  bootstrap();
+})();

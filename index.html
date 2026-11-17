@@ -1,595 +1,239 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f7fb" id="themeColorMeta" />
-    <title>Martin's Card Prototyper</title>
-    <script>
-      (() => {
-        let savedTheme = null;
-        try {
-          savedTheme = localStorage.getItem("martins_card_prototyper.theme");
-        } catch (error) {
-          // System appearance remains available when storage is blocked.
-        }
-        const theme = savedTheme === "light" || savedTheme === "dark"
-          ? savedTheme
-          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.style.colorScheme = theme;
-      })();
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Archivo:wght@400;600;700&family=Audiowide&family=Bangers&family=Bebas+Neue&family=Bree+Serif&family=Bungee&family=Cabin+Sketch:wght@400;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;700&family=Exo+2:wght@400;600;700&family=Fjalla+One&family=IM+Fell+English+SC&family=Inter:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Lora:wght@400;500;700&family=Luckiest+Guy&family=Manrope:wght@400;600;700;800&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700;800&family=Nunito:wght@400;600;700&family=Orbitron:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pirata+One&family=Playfair+Display:wght@500;600;700&family=Rajdhani:wght@400;600;700&family=Rye&family=Skranji:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Special+Elite&family=Teko:wght@400;600;700&family=Uncial+Antiqua&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css?v=20260725-3" />
-  </head>
-  <body>
-    <header class="app-header">
-      <div class="header-inner">
-        <a class="brand" href="#" aria-label="Card Prototyper home">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <rect x="4" y="3" width="12" height="17" rx="3" />
-              <path d="M8 7h4M8 11h4M8 15h3" stroke-linecap="round" />
-              <path d="M16 8l4-2v12l-4-2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </span>
-          <span class="brand-copy">
-            <strong>Card Prototyper</strong>
-            <span>Build playable card ideas in minutes</span>
-          </span>
-        </a>
-
-        <div class="header-actions">
-          <button id="feedbackBtn" class="header-button" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path d="M4 5.5h16v11H8l-4 3v-14z" stroke-linejoin="round" />
-            </svg>
-            <span>Feedback</span>
-          </button>
-          <button id="openTutorialBtn" class="header-button" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M9.8 9a2.3 2.3 0 1 1 3.4 2c-.8.5-1.2 1-1.2 2" stroke-linecap="round" />
-              <path d="M12 17h.01" stroke-linecap="round" />
-            </svg>
-            <span>Tutorial</span>
-          </button>
-          <div class="menu-wrap">
-            <button id="toolsMenuBtn" class="related-sites-trigger" type="button" aria-label="Open related sites" aria-haspopup="true" aria-expanded="false">
-              <svg class="related-sites-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7" rx="2" />
-                <rect x="14" y="3" width="7" height="7" rx="2" />
-                <rect x="3" y="14" width="7" height="7" rx="2" />
-                <rect x="14" y="14" width="7" height="7" rx="2" />
-              </svg>
-              <span class="related-sites-label-full">Related Sites</span>
-              <span class="related-sites-label-short">Sites</span>
-              <svg class="related-sites-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </button>
-            <nav id="toolsMenu" class="tools-menu" aria-label="Related print and play sites" hidden>
-              <a href="https://gonzhome.us" target="_blank" rel="noopener noreferrer">Gonzhome</a>
-              <a href="https://pnpfinder.com" target="_blank" rel="noopener noreferrer">PnPFinder</a>
-              <a href="https://pnpdaily.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Daily</a>
-              <a href="https://launchpad.gonzhome.us" target="_blank" rel="noopener noreferrer">PnP Launchpad</a>
-              <a href="https://pnptools.gonzhome.us" target="_blank" rel="noopener noreferrer">PnPTools</a>
-              <a href="https://formatter.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Formatter</a>
-              <a href="https://extractor.gonzhome.us" target="_blank" rel="noopener noreferrer">Card Extractor</a>
-              <a href="https://boardsplitter.gonzhome.us" target="_blank" rel="noopener noreferrer">BoardSplitter</a>
-              <a href="https://geeklist.gonzhome.us" target="_blank" rel="noopener noreferrer">Geeklist Generator</a>
-            </nav>
-          </div>
-          <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Switch appearance" title="Switch appearance">
-            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2z" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <circle cx="12" cy="12" r="3.5" />
-              <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3l1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3l1.42-1.42" stroke-linecap="round" />
-            </svg>
-          </button>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb" id="theme-color">
+  <title>Card Prototyper — Build Playable Card Ideas</title>
+  <script>
+    (() => {
+      let saved;
+      try { saved = localStorage.getItem("martins_card_prototyper.theme"); } catch {}
+      const theme = saved || (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260726-1">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="#" aria-label="Card Prototyper home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="12" height="17" rx="3"/><path d="M8 7h4M8 11h4M8 15h3M16 8l4-2v12l-4-2"/></svg></span>
+        <span class="brand-copy"><strong>Card Prototyper</strong><small>Build playable card ideas in minutes</small></span>
+      </a>
+      <div class="header-actions">
+        <button id="feedback-btn" class="header-button" type="button">Feedback</button>
+        <button id="tutorial-btn" class="header-button" type="button">Tutorial</button>
+        <div class="menu-wrap">
+          <button id="related-btn" class="header-button" type="button" aria-expanded="false">Related Sites <span>⌄</span></button>
+          <nav id="related-menu" class="related-menu" hidden>
+            <a href="https://tokenmaker.gonzhome.us" target="_blank" rel="noreferrer">TokenMaker</a>
+            <a href="https://boardsplitter.gonzhome.us" target="_blank" rel="noreferrer">BoardSplitter</a>
+            <a href="https://formatter.gonzhome.us" target="_blank" rel="noreferrer">Card Formatter</a>
+            <a href="https://extractor.gonzhome.us" target="_blank" rel="noreferrer">Card Extractor</a>
+            <a href="https://pnptools.gonzhome.us" target="_blank" rel="noreferrer">PnPTools</a>
+            <a href="https://pnpfinder.com" target="_blank" rel="noreferrer">PnPFinder</a>
+          </nav>
         </div>
+        <button id="theme-btn" class="icon-button theme-button" type="button" aria-label="Switch appearance"><span class="moon">☾</span><span class="sun">☀</span></button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="app-shell">
-      <section class="panel left-panel">
-        <div class="panel-intro">
-          <span class="eyebrow">Design workspace</span>
-          <h1>Build your card</h1>
-          <p>Arrange content, artwork, and layers, then export a playable prototype.</p>
-        </div>
-        <details class="ui-section" open>
-          <summary>Project</summary>
-          <div class="section-body">
-            <div class="field-row">
-              <label for="projectName">Project Name</label>
-              <input id="projectName" type="text" placeholder="My Awesome Card Design" />
-            </div>
-            <div class="field-row">
-              <label for="cardSizeSelect">Card Size</label>
-              <select id="cardSizeSelect">
-                <option value="poker">Poker (2.5 x 3.5 in)</option>
-                <option value="tarot">Tarot (2.75 x 4.75 in)</option>
-                <option value="mini">Mini (1.75 x 2.5 in)</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div class="field-row inline">
-              <label for="snapToggle">Snap to Grid</label>
-              <input id="snapToggle" type="checkbox" checked />
-            </div>
-            <div class="field-row inline">
-              <label for="showSafeBorder">Show Safe Border</label>
-              <input id="showSafeBorder" type="checkbox" checked />
-            </div>
-            <details class="subsection">
-              <summary>Advanced Project Settings</summary>
-              <div class="section-body">
-                <div class="field-grid two-col" id="customSizeWrap" hidden>
-                  <div class="field-row">
-                    <label for="customWidth">Width (in)</label>
-                    <input id="customWidth" type="number" min="1" max="10" step="0.01" value="2.5" />
-                  </div>
-                  <div class="field-row">
-                    <label for="customHeight">Height (in)</label>
-                    <input id="customHeight" type="number" min="1" max="14" step="0.01" value="3.5" />
-                  </div>
-                </div>
-                <div class="field-row">
-                  <label for="gridStepInput">Grid Step (in)</label>
-                  <input id="gridStepInput" type="number" min="0.005" max="0.5" step="0.005" value="0.005" />
-                </div>
-              </div>
-            </details>
-          </div>
-        </details>
-
-        <details class="ui-section" open>
-          <summary>Cards</summary>
-          <div class="section-body">
-            <div class="row-actions">
-              <button id="newCardBtn" type="button">New Card</button>
-              <button id="duplicateCardBtn" type="button">Duplicate</button>
-              <button id="deleteCardBtn" type="button" class="danger">Delete</button>
-            </div>
-            <p id="cardsCountText" class="hint inline-hint">1 card in session.</p>
-            <ul id="cardsList" class="cards-list"></ul>
-          </div>
-        </details>
-
-        <details class="ui-section" open>
-          <summary>Tiles</summary>
-          <div class="section-body">
-            <div class="palette" id="tilePalette">
-              <button draggable="true" data-tile-type="card-background">Card Background Image</button>
-              <button draggable="true" data-tile-type="title">Title Tile</button>
-              <button draggable="true" data-tile-type="effect">Effect Text</button>
-              <button draggable="true" data-tile-type="flavor">Flavor Text</button>
-              <button draggable="true" data-tile-type="main-image">Main Image</button>
-              <button draggable="true" data-tile-type="icon">Icon Tile</button>
-            </div>
-            <p class="hint">Drag a tile type onto the card canvas.</p>
-            <p class="hint">
-              Need art assets? Download free icon and image assets from
-              <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a>.
-            </p>
-          </div>
-        </details>
-
-        <details class="ui-section">
-          <summary>Layers</summary>
-          <div class="section-body">
-            <p class="hint">Top layer appears first. Use arrows to reorder.</p>
-            <ul id="layersList" class="layers-list"></ul>
-          </div>
-        </details>
-
-        <details class="ui-section">
-          <summary>Project File</summary>
-          <div class="section-body">
-            <div class="row-actions">
-              <button id="saveProjectBtn">Save Project JSON</button>
-              <button id="loadProjectBtn">Load Project JSON</button>
-              <input id="projectFileInput" type="file" accept="application/json" hidden />
-            </div>
-            <div class="row-actions">
-              <button id="resetProjectBtn" class="danger">Start Over</button>
-            </div>
-          </div>
-        </details>
-
-        <details class="ui-section" open>
-          <summary>Export</summary>
-          <div class="section-body">
-            <div class="field-row">
-              <label for="exportScopeSelect">Export Scope</label>
-              <select id="exportScopeSelect">
-                <option value="active">Active Card</option>
-                <option value="all">All Cards in Session</option>
-              </select>
-            </div>
-            <div class="row-actions">
-              <button id="previewCardBtn">Preview Card</button>
-              <button id="exportPngBtn">Export PNG</button>
-            </div>
-            <p class="hint inline-hint">Preview first, then export when the card looks right.</p>
-            <details class="subsection" open>
-              <summary>Print Sheet (PDF)</summary>
-              <div class="section-body">
-                <div class="field-row">
-                  <label for="pdfPageSize">PDF Page</label>
-                  <select id="pdfPageSize">
-                    <option value="letter">US Letter</option>
-                    <option value="a4">A4</option>
-                  </select>
-                </div>
-                <div class="field-row">
-                  <label for="pdfLayout">PDF Layout</label>
-                  <select id="pdfLayout">
-                    <option value="grid3x3">3x3 Grid</option>
-                    <option value="grid2x3">2x3 Grid</option>
-                    <option value="gutterfold">Gutterfold</option>
-                  </select>
-                </div>
-                <div class="field-row">
-                  <label for="pdfCopies">Cards in PDF</label>
-                  <input id="pdfCopies" type="number" min="1" max="300" value="9" />
-                </div>
-                <div class="row-actions">
-                  <button id="exportPdfBtn">Export PDF</button>
-                </div>
-                <p class="hint inline-hint">Use PDF export for print-ready card sheets and cut guides.</p>
-              </div>
-            </details>
-          </div>
-        </details>
-        <p id="statusText" class="status">Ready.</p>
-      </section>
-
-      <section class="stage-panel">
-        <div class="stage-heading">
-          <div>
-            <span class="eyebrow">Live preview</span>
-            <h2>Card canvas</h2>
-          </div>
-          <span class="canvas-badge">Drag · resize · edit</span>
-        </div>
-        <div id="cardStageWrap">
-          <div id="cardStage" aria-label="Card design stage"></div>
-        </div>
-      </section>
-
-    </main>
-
-    <footer class="site-footer">
-      <p>
-        © 2026 Rights owned by
-        <a href="mailto:help@pnpfinder.com?subject=Card%20Prototyper%20Feedback">Martin Gonzalvez</a>.
-      </p>
-      <p>
-        <span aria-hidden="true">☕</span>
-        Like this tool? Why not
-        <a href="https://ko-fi.com/marting" target="_blank" rel="noopener noreferrer">buy me a coffee</a>?
-      </p>
-    </footer>
-
-    <aside id="floatingPalette" class="floating-palette" hidden>
-      <h2>Selection</h2>
-      <div id="inspectorModeRow" class="field-row inline">
-        <label for="inspectorModeBtn">Controls</label>
-        <button id="inspectorModeBtn" type="button" class="ghost-btn">Show Advanced</button>
-      </div>
-      <p id="inspectorModeHint" class="hint inline-hint">Switch between focused and advanced controls.</p>
-      <div id="tileControls" hidden>
-        <div class="field-row">
-          <label for="tileNameInput">Label</label>
-          <input id="tileNameInput" type="text" />
-        </div>
-        <div class="field-row inline">
-          <label for="tileTransparentBgInput">Transparent Tile Background</label>
-          <input id="tileTransparentBgInput" type="checkbox" />
-        </div>
-        <div class="field-row inline">
-          <label for="tileShowOutlineInput">Show Tile Outline</label>
-          <input id="tileShowOutlineInput" type="checkbox" checked />
-        </div>
-        <div class="field-grid two-col">
-          <div class="field-row">
-            <label for="tileXInput">X (in)</label>
-            <input id="tileXInput" type="number" step="0.01" />
-          </div>
-          <div class="field-row">
-            <label for="tileYInput">Y (in)</label>
-            <input id="tileYInput" type="number" step="0.01" />
-          </div>
-          <div class="field-row">
-            <label for="tileWInput">Width (in)</label>
-            <input id="tileWInput" type="number" min="0.2" step="0.01" />
-          </div>
-          <div class="field-row">
-            <label for="tileHInput">Height (in)</label>
-            <input id="tileHInput" type="number" min="0.2" step="0.01" />
-          </div>
-        </div>
-        <div class="field-row">
-          <label for="tileRotationSelect">Rotation</label>
-          <select id="tileRotationSelect">
-            <option value="0">0°</option>
-            <option value="90">90°</option>
-            <option value="180">180°</option>
-            <option value="270">270°</option>
-          </select>
-        </div>
-        <div class="row-actions">
-          <button id="deleteTileBtn" class="danger">Delete Tile</button>
-        </div>
-
-        <div id="textControlsWrap">
-          <h3>Text Tools</h3>
-          <p class="hint inline-hint">Type directly in the tile to edit text content.</p>
-          <div class="toolbar">
-            <button data-cmd="bold"><b>B</b></button>
-            <button data-cmd="italic"><i>I</i></button>
-            <button data-cmd="underline"><u>U</u></button>
-          </div>
-          <div class="field-grid two-col">
-            <div class="field-row">
-              <label for="fontFamilySelect">Font</label>
-              <select id="fontFamilySelect">
-                <option value="'Alegreya SC', 'Times New Roman', serif">Alegreya SC</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="'Archivo', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Archivo</option>
-                <option value="'Audiowide', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Audiowide</option>
-                <option value="'Bangers', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bangers</option>
-                <option value="'Bebas Neue', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bebas Neue</option>
-                <option value="'Bree Serif', 'Times New Roman', serif">Bree Serif</option>
-                <option value="'Bungee', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Bungee</option>
-                <option value="'Cabin Sketch', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Cabin Sketch</option>
-                <option value="'Cinzel', 'Times New Roman', serif">Cinzel</option>
-                <option value="'Cormorant Garamond', Georgia, serif">Cormorant Garamond</option>
-                <option value="'Courier New', monospace">Courier New</option>
-                <option value="'Crimson Text', Georgia, serif">Crimson Text</option>
-                <option value="'DM Sans', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">DM Sans</option>
-                <option value="'Exo 2', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Exo 2</option>
-                <option value="'Fjalla One', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Fjalla One</option>
-                <option value="Georgia, serif">Georgia</option>
-                <option value="'IM Fell English SC', 'Times New Roman', serif">IM Fell English SC</option>
-                <option value="'Inter', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Inter</option>
-                <option value="'Josefin Sans', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Josefin Sans</option>
-                <option value="'Lora', Georgia, serif">Lora</option>
-                <option value="'Luckiest Guy', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Luckiest Guy</option>
-                <option value="'Manrope', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Manrope</option>
-                <option value="'MedievalSharp', 'Times New Roman', serif">MedievalSharp</option>
-                <option value="'Merriweather', Georgia, serif">Merriweather</option>
-                <option value="'Montserrat', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Montserrat</option>
-                <option value="'Nunito', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Nunito</option>
-                <option value="'Orbitron', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Orbitron</option>
-                <option value="'Oswald', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Oswald</option>
-                <option value="'Pirata One', 'Times New Roman', serif">Pirata One</option>
-                <option value="'Playfair Display', 'Times New Roman', serif">Playfair Display</option>
-                <option value="'Rajdhani', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Rajdhani</option>
-                <option value="'Rye', 'Times New Roman', serif">Rye</option>
-                <option value="'Skranji', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Skranji</option>
-                <option value="'Source Sans 3', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Source Sans 3</option>
-                <option value="'Space Grotesk', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Space Grotesk</option>
-                <option value="'Special Elite', 'Courier New', monospace">Special Elite</option>
-                <option value="'Teko', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif">Teko</option>
-                <option value="'Times New Roman', serif">Times New Roman</option>
-                <option value="'Trebuchet MS', 'Helvetica Neue', Arial, sans-serif">Trebuchet MS</option>
-                <option value="'Uncial Antiqua', 'Times New Roman', serif">Uncial Antiqua</option>
-                <option value="Verdana, sans-serif">Verdana</option>
-              </select>
-            </div>
-            <div class="field-row">
-              <label for="fontSizeInput">Font Size (px)</label>
-              <input id="fontSizeInput" type="number" min="8" max="96" value="18" />
-            </div>
-            <div class="field-row inspector-advanced adv-text">
-              <label for="lineHeightInput">Line Height</label>
-              <input id="lineHeightInput" type="number" min="0.8" max="3" step="0.05" value="1.2" />
-            </div>
-            <div class="field-row">
-              <label for="textAlignSelect">Text Align</label>
-              <select id="textAlignSelect">
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-                <option value="justify">Justify</option>
-              </select>
-            </div>
-            <div class="field-row inspector-advanced adv-text">
-              <label for="textFlowModeSelect">Text Flow</label>
-              <select id="textFlowModeSelect">
-                <option value="rotated">Rotated Text</option>
-                <option value="vertical">Vertical Writing</option>
-              </select>
-            </div>
-            <div class="field-row inspector-advanced adv-text">
-              <label for="textVAlignSelect">Vertical Align</label>
-              <select id="textVAlignSelect">
-                <option value="top">Top</option>
-                <option value="middle" selected>Middle</option>
-                <option value="bottom">Bottom</option>
-              </select>
-            </div>
-            <div class="field-row inspector-advanced adv-text">
-              <label for="letterSpacingInput">Letter Spacing (px)</label>
-              <input id="letterSpacingInput" type="number" min="-2" max="20" step="0.1" value="0" />
-            </div>
-            <div class="field-row">
-              <label for="textColorInput">Text Color</label>
-              <input id="textColorInput" type="color" value="#1f2430" />
-            </div>
-            <div class="field-row inspector-advanced adv-text">
-              <label for="bgColorInput">Text Background</label>
-              <input id="bgColorInput" type="color" value="#ffffff" />
-            </div>
-          </div>
-        </div>
-
-        <div id="titleControls" class="inspector-advanced adv-title" hidden>
-          <h3>Title Tile</h3>
-          <div class="field-row inline">
-            <label for="titleBannerEnabled">Use Title Banner</label>
-            <input id="titleBannerEnabled" type="checkbox" />
-          </div>
-          <div class="field-row">
-            <label for="titleBannerMode">Banner Type</label>
-            <select id="titleBannerMode">
-              <option value="color">Solid Color</option>
-              <option value="gradient">Gradient</option>
-              <option value="image">Image Banner</option>
-            </select>
-          </div>
-          <div class="field-row" id="titleBannerColorRow">
-            <label for="titleBannerColor">Banner Color</label>
-            <input id="titleBannerColor" type="color" value="#1f2430" />
-          </div>
-          <div class="field-row" id="titleBannerGradientRow" hidden>
-            <label for="titleBannerGradient">Banner Gradient</label>
-            <select id="titleBannerGradient">
-              <option value="linear-gradient(90deg, #1f2937, #3b82f6)">Blue Steel</option>
-              <option value="linear-gradient(90deg, #3f1d0f, #b45309)">Amber Forge</option>
-              <option value="linear-gradient(90deg, #0f5132, #22c55e)">Emerald Mint</option>
-              <option value="linear-gradient(90deg, #581c87, #c026d3)">Royal Magenta</option>
-              <option value="linear-gradient(90deg, #7f1d1d, #ef4444)">Crimson Blaze</option>
-            </select>
-          </div>
-          <div class="field-row" id="titleBannerImageRow" hidden>
-            <label>Banner Image</label>
-            <div class="row-actions">
-              <button id="titleBannerUploadBtn" type="button">Upload Banner</button>
-              <input id="titleBannerFileInput" type="file" accept="image/png,image/jpeg" hidden />
-            </div>
-          </div>
-          <div class="field-row">
-            <label for="titleBannerPaddingMm">Banner Text Padding (mm)</label>
-            <input id="titleBannerPaddingMm" type="number" min="0" max="10" step="0.1" value="0.5" />
-          </div>
-        </div>
-
-        <div id="imageControls" hidden>
-          <h3>Image Tile</h3>
-          <div class="field-row inspector-advanced adv-image">
-            <label for="imageFillMode">Fill Mode</label>
-            <select id="imageFillMode">
-              <option value="image">Image</option>
-              <option value="color">Solid Color</option>
-              <option value="gradient">Gradient</option>
-            </select>
-          </div>
-          <div class="field-row inspector-advanced adv-image" id="imageFillColorRow" hidden>
-            <label for="imageFillColor">Fill Color</label>
-            <input id="imageFillColor" type="color" value="#f8f8f8" />
-          </div>
-          <div class="field-row inspector-advanced adv-image" id="imageFillGradientRow" hidden>
-            <label for="imageFillGradient">Fill Gradient</label>
-            <select id="imageFillGradient">
-              <option value="linear-gradient(180deg, #ffffff, #e8f2ff)">Arctic Haze</option>
-              <option value="linear-gradient(180deg, #fffdf3, #f9f1d7)">Champagne Paper</option>
-              <option value="linear-gradient(180deg, #effaf1, #d8f0dd)">Mint Mist</option>
-              <option value="linear-gradient(180deg, #fff0f4, #ffe0ea)">Rose Dust</option>
-              <option value="linear-gradient(180deg, #f4f8ff, #e8eefc)">Soft Sky</option>
-              <option value="linear-gradient(180deg, #fff9ef, #ffe8cf)">Sunlit Parchment</option>
-              <option value="linear-gradient(180deg, #f7f0ff, #e9dcfb)">Lavender Air</option>
-              <option value="linear-gradient(180deg, #f4f6f8, #dfe6ec)">Cloud Steel</option>
-            </select>
-          </div>
-          <div class="row-actions">
-            <button id="uploadImageBtn">Upload Image</button>
-            <input id="imageFileInput" type="file" accept="image/png,image/jpeg" hidden />
-          </div>
-        </div>
-
-        <div id="iconControls" class="inspector-advanced adv-icon" hidden>
-          <h3>Icon Number</h3>
-          <div class="field-grid two-col">
-            <div class="field-row">
-              <label for="iconValueInput">Value</label>
-              <input id="iconValueInput" type="text" value="1" />
-            </div>
-            <div class="field-row">
-              <label>Position</label>
-              <input type="text" value="Overlay" readonly />
-            </div>
-            <div class="field-row">
-              <label for="iconValueColor">Value Color</label>
-              <input id="iconValueColor" type="color" value="#ffffff" />
-            </div>
-            <div class="field-row">
-              <label for="iconValueSize">Value Size (px)</label>
-              <input id="iconValueSize" type="number" min="8" max="120" value="60" />
-            </div>
-            <div class="field-row">
-              <label for="iconOutlineColor">Outline Color</label>
-              <input id="iconOutlineColor" type="color" value="#111111" />
-            </div>
-            <div class="field-row">
-              <label for="iconOutlineWidth">Outline Width</label>
-              <input id="iconOutlineWidth" type="number" min="0" max="12" step="0.5" value="2" />
-            </div>
-            <div class="field-row">
-              <label for="iconOffsetX">Nudge X (px)</label>
-              <input id="iconOffsetX" type="number" min="-120" max="120" step="1" value="0" />
-            </div>
-            <div class="field-row">
-              <label for="iconOffsetY">Nudge Y (px)</label>
-              <input id="iconOffsetY" type="number" min="-120" max="120" step="1" value="0" />
-            </div>
-          </div>
-        </div>
-      </div>
+  <main class="editor-shell">
+    <aside class="tool-rail" aria-label="Editor tools">
+      <button class="rail-button active" data-drawer="add" type="button"><span>＋</span>Add</button>
+      <button class="rail-button" data-drawer="assets" type="button"><span>◇</span>Assets</button>
+      <button class="rail-button" data-drawer="cards" type="button"><span>▤</span>Cards</button>
+      <button class="rail-button" data-drawer="layers" type="button"><span>☷</span>Layers</button>
+      <span class="rail-spacer"></span>
+      <button class="rail-button" data-drawer="project" type="button"><span>⌁</span>Project</button>
+      <button class="rail-button" data-drawer="export" type="button"><span>⇧</span>Export</button>
     </aside>
 
-    <div id="previewModal" class="preview-modal" hidden>
-      <div class="preview-card" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
-        <h2 id="previewTitle">Card Preview</h2>
-        <div class="preview-image-wrap">
-          <img id="previewImage" alt="Card preview" />
+    <aside id="drawer" class="drawer">
+      <section class="drawer-view" data-view="add">
+        <div class="drawer-heading"><p>Build your card</p><h1>Add an element</h1></div>
+        <p class="drawer-copy">Choose a component, then click or drag on the card to place it.</p>
+        <div class="component-list">
+          <button class="component-card" data-add-type="title"><span class="component-preview title-preview">Aa</span><b>Title</b><small>Card names and headings</small></button>
+          <button class="component-card" data-add-type="effect"><span class="component-preview rules-preview">≡</span><b>Rules</b><small>Effects and instructions</small></button>
+          <button class="component-card" data-add-type="flavor"><span class="component-preview flavor-preview">“ ”</span><b>Flavor</b><small>Story and supporting copy</small></button>
+          <button class="component-card" data-add-type="main-image"><span class="component-preview">▧</span><b>Artwork</b><small>Upload or choose a symbol</small></button>
+          <button class="component-card" data-add-type="icon"><span class="component-preview">◆</span><b>Icon / value</b><small>Costs, stats, and symbols</small></button>
+          <button class="component-card" data-add-type="card-background"><span class="component-preview gradient-preview"></span><b>Background</b><small>Full-card color or artwork</small></button>
         </div>
-        <div class="row-actions">
-          <button id="previewDownloadBtn" type="button">Download PNG</button>
-          <button id="previewCloseBtn" type="button">Close</button>
+      </section>
+
+      <section class="drawer-view" data-view="assets" hidden>
+        <div class="drawer-heading"><p>Fractal Symbols</p><h1>Choose artwork <span id="icon-count" class="count-pill">327</span></h1></div>
+        <label class="search-field"><span>⌕</span><input id="asset-search" type="search" placeholder="Search symbols" autocomplete="off"></label>
+        <div id="category-chips" class="category-chips"></div>
+        <div id="asset-grid" class="asset-grid"></div>
+        <p id="asset-empty" class="empty-state" hidden>No symbols match that search.</p>
+        <button id="asset-license-btn" class="text-button wide" type="button">Free icon license · CC BY 4.0</button>
+        <div class="upload-card">
+          <button id="upload-image-btn" class="secondary-button" type="button">Upload PNG or JPG</button>
+          <input id="image-file" type="file" accept="image/png,image/jpeg" hidden>
+          <small>Max 2.5 MB and 3000 × 3000.</small>
+        </div>
+      </section>
+
+      <section class="drawer-view" data-view="cards" hidden>
+        <div class="drawer-heading"><p>Project cards</p><h1>Your cards</h1></div>
+        <button id="new-card-btn" class="primary-button wide" type="button">＋ New card from template</button>
+        <div id="cards-list" class="cards-list"></div>
+      </section>
+
+      <section class="drawer-view" data-view="layers" hidden>
+        <div class="drawer-heading"><p>Stack order</p><h1>Layers</h1></div>
+        <p class="drawer-copy">Drag layers to reorder, or use the arrow controls.</p>
+        <div id="layers-list" class="layers-list"></div>
+      </section>
+
+      <section class="drawer-view" data-view="project" hidden>
+        <div class="drawer-heading"><p>Project</p><h1>Card settings</h1></div>
+        <label class="field"><span>Card name</span><input id="card-name" type="text" maxlength="80"></label>
+        <label class="field"><span>Card size</span><select id="card-size"><option value="poker">Poker · 2.5 × 3.5 in</option><option value="tarot">Tarot · 2.75 × 4.75 in</option><option value="mini">Mini · 1.75 × 2.5 in</option><option value="custom">Custom</option></select></label>
+        <div id="custom-size" class="field-grid" hidden>
+          <label class="field"><span>Width (in)</span><input id="card-width" type="number" min="1" max="10" step=".01"></label>
+          <label class="field"><span>Height (in)</span><input id="card-height" type="number" min="1" max="14" step=".01"></label>
+        </div>
+        <label class="switch-row"><span><b>Snap to grid</b><small>Precise 0.05 in increments</small></span><input id="snap-toggle" type="checkbox"></label>
+        <label class="switch-row"><span><b>Safe area</b><small>Keep important content printable</small></span><input id="safe-toggle" type="checkbox"></label>
+        <hr>
+        <div class="button-stack">
+          <button id="save-json-btn" class="secondary-button" type="button">Save project JSON</button>
+          <button id="load-json-btn" class="secondary-button" type="button">Load project JSON</button>
+          <input id="project-file" type="file" accept="application/json" hidden>
+          <button id="start-over-btn" class="danger-button" type="button">Start over</button>
+        </div>
+      </section>
+
+      <section class="drawer-view" data-view="export" hidden>
+        <div class="drawer-heading"><p>Preview and print</p><h1>Export</h1></div>
+        <label class="field"><span>Scope</span><select id="export-scope"><option value="active">Active card</option><option value="all">All cards</option></select></label>
+        <button id="preview-btn" class="secondary-button wide" type="button">Preview card</button>
+        <button id="png-btn" class="primary-button wide" type="button">Export PNG</button>
+        <hr>
+        <h2>Print sheet</h2>
+        <div class="field-grid">
+          <label class="field"><span>Paper</span><select id="pdf-page"><option value="letter">US Letter</option><option value="a4">A4</option></select></label>
+          <label class="field"><span>Layout</span><select id="pdf-layout"><option value="grid3x3">3 × 3 grid</option><option value="grid2x3">3 × 2 grid</option><option value="gutterfold">Gutterfold</option></select></label>
+        </div>
+        <label class="field"><span>Copies (active card)</span><input id="pdf-copies" type="number" min="1" max="300" value="9"></label>
+        <button id="pdf-btn" class="primary-button wide" type="button">Export print-ready PDF</button>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="canvas-toolbar">
+        <div class="toolbar-group">
+          <button id="undo-btn" class="icon-button" type="button" title="Undo" disabled>↶</button>
+          <button id="redo-btn" class="icon-button" type="button" title="Redo" disabled>↷</button>
+        </div>
+        <div class="active-card-title"><input id="quick-card-name" type="text" aria-label="Active card name"><span id="card-dimensions"></span></div>
+        <div class="toolbar-group">
+          <button id="zoom-out" class="icon-button" type="button" title="Zoom out">−</button>
+          <button id="zoom-fit" class="zoom-readout" type="button">Fit</button>
+          <button id="zoom-in" class="icon-button" type="button" title="Zoom in">＋</button>
+          <button id="preview-top-btn" class="secondary-button compact" type="button">Preview</button>
         </div>
       </div>
-    </div>
-
-    <div id="tutorialModal" class="tutorial-modal" hidden>
-      <div class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
-        <h2 id="tutorialTitle">Welcome to Martin's Card Prototyper</h2>
-        <p id="tutorialIntro">
-          Do you want a quick walkthrough or would you rather jump straight into the editor?
-        </p>
-        <div class="row-actions" id="tutorialChoiceRow">
-          <button id="tutorialViewBtn" type="button">View Tutorial</button>
-          <button id="tutorialSkipBtn" type="button">Skip</button>
+      <div id="canvas-viewport" class="canvas-viewport">
+        <div id="card-wrap">
+          <div id="card-stage" tabindex="0" aria-label="Card design canvas"></div>
+          <div id="selection-box" class="selection-box export-hide" hidden>
+            <button class="rotate-handle" data-handle="rotate" aria-label="Rotate element"></button>
+            <i data-handle="nw"></i><i data-handle="n"></i><i data-handle="ne"></i><i data-handle="e"></i>
+            <i data-handle="se"></i><i data-handle="s"></i><i data-handle="sw"></i><i data-handle="w"></i>
+          </div>
+          <div id="guide-x" class="alignment-guide horizontal export-hide" hidden></div>
+          <div id="guide-y" class="alignment-guide vertical export-hide" hidden></div>
         </div>
       </div>
-    </div>
+      <p id="status" class="status" aria-live="polite">Ready. Choose an element to start designing.</p>
+    </section>
 
-    <div id="tutorialGuide" class="tutorial-guide" hidden>
-      <div class="tutorial-guide-card">
-        <div class="tutorial-guide-step" id="tutorialGuideStep">Step 1 of 1</div>
-        <p id="tutorialGuideText"></p>
-        <div class="row-actions">
-          <button id="tutorialPrevBtn" type="button">Back</button>
-          <button id="tutorialNextBtn" type="button">Next</button>
-          <button id="tutorialGuideSkipBtn" type="button">Exit Tutorial</button>
+    <aside id="inspector" class="inspector">
+      <div id="empty-inspector" class="empty-inspector"><span>◇</span><h2>Select an element</h2><p>Click anything on the card to move, resize, rotate, or style it.</p></div>
+      <div id="selection-inspector" hidden>
+        <div class="inspector-heading"><div><p id="element-kind">Element</p><input id="element-label" type="text" aria-label="Element label"></div><button id="delete-element" class="icon-button danger-icon" type="button" title="Delete">×</button></div>
+        <div id="text-content-control"><label class="field"><span>Text</span><textarea id="element-text" rows="3"></textarea></label></div>
+        <div id="style-presets" class="preset-grid"></div>
+        <div id="text-essentials">
+          <div class="segmented" id="text-align"><button data-value="left">≡</button><button data-value="center">≡</button><button data-value="right">≡</button></div>
+          <div class="field-grid"><label class="field"><span>Text</span><input id="text-color" type="color"></label><label class="field"><span>Panel</span><input id="panel-color" type="color"></label></div>
         </div>
+        <div id="image-essentials">
+          <button id="choose-asset-btn" class="secondary-button wide" type="button">Choose from icon library</button>
+          <button id="replace-upload-btn" class="text-button wide" type="button">Upload image</button>
+          <details id="artwork-appearance" class="appearance-panel" hidden>
+            <summary>Appearance</summary>
+            <div class="appearance-body">
+              <div class="segmented" id="fill-mode"><button data-value="image">Image</button><button data-value="color">Color</button><button data-value="gradient">Gradient</button></div>
+              <div class="field-grid">
+                <label class="field"><span>Fill color</span><input id="fill-color" type="color"></label>
+                <label class="field opacity-field"><span>Opacity</span><div class="range-row"><input id="artwork-opacity" type="range" min="0" max="1" step="0.05"><span id="artwork-opacity-val" class="range-val">100%</span></div></label>
+              </div>
+              <div class="field-grid">
+                <label class="field"><span>Stroke</span><input id="stroke-color" type="color"></label>
+                <label class="field opacity-field"><span>Stroke width</span><div class="range-row"><input id="stroke-width" type="range" min="0" max="8" step="0.5"><span id="stroke-width-val" class="range-val">0px</span></div></label>
+              </div>
+            </div>
+          </details>
+          <div id="icon-essentials">
+            <div class="field-grid"><label class="field"><span>Icon tint</span><input id="icon-tint" type="color"></label><label class="field"><span>Badge</span><input id="badge-color" type="color"></label></div>
+            <label class="switch-row"><span><b>Show value</b></span><input id="value-enabled" type="checkbox"></label>
+            <label id="icon-value-row" class="field"><span>Value</span><input id="icon-value" type="text" maxlength="4"></label>
+          </div>
+        </div>
+        <details class="more-panel">
+          <summary>More controls</summary>
+          <div class="more-body">
+            <div class="field-grid"><label class="field"><span>X (in)</span><input id="x-input" type="number" step=".01"></label><label class="field"><span>Y (in)</span><input id="y-input" type="number" step=".01"></label><label class="field"><span>Width</span><input id="w-input" type="number" step=".01"></label><label class="field"><span>Height</span><input id="h-input" type="number" step=".01"></label></div>
+            <label class="field"><span>Rotation</span><input id="rotation-input" type="number" min="0" max="359" step="1"></label>
+            <div id="text-more"><label class="field"><span>Font</span><select id="font-family"><option value="'Manrope', sans-serif">Manrope</option><option value="'Cormorant Garamond', serif">Cormorant Garamond</option><option value="Georgia, serif">Georgia</option><option value="Arial, sans-serif">Arial</option></select></label><label class="field"><span>Size (pt)</span><input id="font-size" type="number" min="4" max="72" step=".5"></label></div>
+            <label class="switch-row"><span><b>Frame border</b></span><input id="frame-toggle" type="checkbox"></label>
+            <label class="switch-row"><span><b>Transparent panel</b></span><input id="transparent-toggle" type="checkbox"></label>
+          </div>
+        </details>
       </div>
-    </div>
+    </aside>
+  </main>
 
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "e42a535ee3274b5daaa809c5231225df"}'></script><!-- End Cloudflare Web Analytics -->
-    <script src="app.js"></script>
-  </body>
+  <footer class="site-footer"><p>Your designs stay in this browser. Save JSON for a portable project file.</p><p>Icons from <a href="https://fractalsymbols.com" target="_blank" rel="noreferrer">Fractal Symbols</a> by Felix Thalin, licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p></footer>
+
+  <dialog id="template-dialog" class="app-dialog">
+    <div class="dialog-heading"><div><p>Start with confidence</p><h2>Choose a card layout</h2></div><button class="icon-button" data-close-dialog="template-dialog">×</button></div>
+    <p>Every template is fully editable. Pick the structure closest to your idea.</p>
+    <div class="template-grid">
+      <button data-template="ability"><span class="template-art ability-art"><i></i><i></i><i></i></span><b>Ability</b><small>Artwork, rules, and cost</small></button>
+      <button data-template="character"><span class="template-art character-art"><i></i><i></i><i></i></span><b>Character</b><small>Portrait, name, and stat</small></button>
+      <button data-template="item"><span class="template-art item-art"><i></i><i></i><i></i></span><b>Item</b><small>Object art and flavor</small></button>
+      <button data-template="blank"><span class="template-art blank-art"></span><b>Blank</b><small>Build from an empty card</small></button>
+    </div>
+    <label class="tutorial-choice"><input id="guide-after-template" type="checkbox" checked><span><b>Show me how it works</b><small>Take a quick guided mini-build after choosing.</small></span></label>
+  </dialog>
+
+  <dialog id="restore-dialog" class="app-dialog small-dialog"><h2>Continue where you left off?</h2><p>A recoverable draft was found in this browser.</p><div class="dialog-actions"><button id="discard-draft" class="secondary-button">Discard</button><button id="restore-draft" class="primary-button">Restore draft</button></div></dialog>
+  <dialog id="license-dialog" class="app-dialog small-dialog"><div class="dialog-heading"><div><p>Icon artwork license</p><h2>Free to use with attribution</h2></div><button class="icon-button" data-close-dialog="license-dialog">×</button></div><p>You may share, adapt, and use Fractal Symbols commercially or noncommercially under CC BY 4.0.</p><div class="license-credit"><b>Suggested credit</b><code>Fractal Symbols by Felix Thalin · fractalsymbols.com · CC BY 4.0</code></div><a class="primary-button link-button" href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">Read the license</a></dialog>
+
+  <div id="tutorial-layer" class="tutorial-layer" hidden><div id="tutorial-spotlight" class="tutorial-spotlight"></div><section id="tutorial-callout" class="tutorial-callout"><p id="tutorial-progress"></p><h2 id="tutorial-title"></h2><p id="tutorial-copy"></p><div class="tutorial-actions"><button id="tutorial-skip" class="text-button">Exit</button><div><button id="tutorial-back" class="secondary-button">Back</button><button id="tutorial-next" class="primary-button">Next</button></div></div></section></div>
+
+  <dialog id="preview-dialog" class="app-dialog preview-dialog"><div class="dialog-heading"><div><p>Export preview</p><h2 id="preview-title">Card preview</h2></div><button class="icon-button" data-close-dialog="preview-dialog">×</button></div><div class="preview-wrap"><img id="preview-image" alt="Rendered card preview"></div><div class="dialog-actions"><button id="preview-download" class="primary-button">Download PNG</button></div></dialog>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="editor-core.js"></script>
+  <script src="icon-manifest.js"></script>
+  <script src="app.js"></script>
+  <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"e42a535ee3274b5daaa809c5231225df"}'></script>
+</body>
 </html>
